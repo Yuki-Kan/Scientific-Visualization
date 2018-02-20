@@ -31,11 +31,21 @@ const int COLOR_BANDS=2;
 int   scalar_col = 0;           //method for scalar coloring
 int   frozen = 0;               //toggles on/off the animation
 
+//---customize parameters
+float col[6][3] ={{1,0,0},  // red
+	                      {0,1,0},  // green
+	                      {0,0,1},  // blue
+	                      {1,1,0},  // yellow
+	                      {0,1,1},  // cyan
+	                      {1,0,1}}; // purple;
+const int hh = 15;
+int bot[6][2] = {{0,0}, {50,0}, {100,0}, {150,0}, {200,0}, {250,0}},
+	       top[6][2] = {{0,hh}, {50,hh}, {100,hh}, {150,hh}, {200,hh}, {250,hh}};
 
 
 //------ SIMULATION CODE STARTS HERE -----------------------------------------------------------------
 
-//init_simulation: Initialize simulation data structures as a function of the grid size 'n'.
+// init_simulation: Initialize simulation data structures as a function of the grid size 'n'.
 //                 Although the simulation takes place on a 2D grid, we allocate all data structures as 1D arrays,
 //                 for compatibility with the FFTW numerical library.
 void init_simulation(int n)
@@ -193,6 +203,14 @@ void do_one_simulation_step(void)
 	}
 }
 
+void do_one_simulation_step2(void)
+{
+	if (!frozen)
+	{
+	  glutPostRedisplay();
+	}
+}
+
 
 //------ VISUALIZATION CODE STARTS HERE -----------------------------------------------------------------
 
@@ -269,6 +287,103 @@ void direction_to_color(float x, float y, int method)
 	glColor3f(r,g,b);
 }
 
+
+void displayText( float x, float y, int r, int g, int b, const char *string ) {
+	int j = strlen( string );
+ 
+	glColor3f( r, g, b );
+	glRasterPos2f( x, y );
+	for( int i = 0; i < j; i++ ) {
+		glutBitmapCharacter( GLUT_BITMAP_TIMES_ROMAN_24, string[i] );
+	}
+}
+
+
+//--------------------------------  Color_Bar  --------------------------------- 
+
+void draw_color_bar(float temp[6][3]){
+    int i;
+    
+    // Use Quad strips to make color bar.
+    glBegin (GL_QUAD_STRIP);
+       for (i = 0; i <= 5; i++)  {
+          glColor3fv  (temp[i]);
+	  glVertex2iv (bot[i]);
+	  glVertex2iv (top[i]);
+       }
+    glEnd ();
+}
+
+void set_color_bar(){
+    int i;
+    if (scalar_col==COLOR_BLACKWHITE)
+   {
+        float temp_array[6][3] = {{1,1,1},  // red
+                                  {0.5,0.5,0.5},  // green     
+                                  {0.5,0.5,0.5},  // green
+                                  {0.5,0.5,0.5},  // green
+                                  {0.5,0.5,0.5},  // green
+//                                  {0,0,1},  // blue
+//                                  {1,1,0},  // yellow
+//                                  {0,1,1},  // cyan
+                                  {0,0,0}}; // purple
+       draw_color_bar(temp_array);
+   }
+    
+    else if(scalar_col==COLOR_RAINBOW)
+   {
+        // self-rainbow: R and G
+        float temp_array[6][3] = {{1,0,0},  // red
+	                      {0.5,0.5,0},  // green
+	                      {0.5,0.5,0},  // blue
+	                      {0.5,0.5,0},  // green
+	                      {0.5,0.5,0},  // cyan
+	                      {0,1,0}}; // purple
+        draw_color_bar(temp_array);
+    }
+    
+    else if(scalar_col==COLOR_BANDS)
+    {
+         float temp_array[6][3] = {{1,0,0},  // red
+	                      {0,1,0},  // green
+	                      {0,0,1},  // blue
+	                      {1,1,0},  // yellow
+	                      {0,1,1},  // cyan
+	                      {1,0,1}}; // purple
+         draw_color_bar(temp_array);
+        
+    }
+}
+
+void Color_Bar(void)
+{
+    if (draw_smoke){
+        printf("---");
+        set_color_bar();
+    }else{
+    int window_w = 250;
+    int window_h = 10;
+ 
+    // Set up coordinate system to position color bar near bottom of window.
+ 
+    glMatrixMode (GL_PROJECTION);
+    glLoadIdentity ();
+    glOrtho (0.0f, window_w, window_h, 0.0f, 0.0f, 1.0f);
+    glMatrixMode (GL_MODELVIEW);
+    glLoadIdentity ();
+ 
+    // Use Quad strips to make color bar.
+    set_color_bar();
+ 
+    // Label ends of color bar.
+ 
+    glColor3f (1, 1, 1);
+    }
+//    bitmap_output (-5, 7, 0, "Min_H", GLUT_BITMAP_9_BY_15);
+//    bitmap_output (95, 7, 0, "Max_H", GLUT_BITMAP_9_BY_15);
+}
+
+
 //visualize: This is the main visualization function
 void visualize(void)
 {
@@ -278,6 +393,7 @@ void visualize(void)
 
 	if (draw_smoke)
 	{
+            
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	glBegin(GL_TRIANGLES);
 	for (j = 0; j < DIM - 1; j++)			//draw smoke
@@ -307,9 +423,13 @@ void visualize(void)
 			set_colormap(rho[idx0]);	glVertex2f(px0, py0);
 			set_colormap(rho[idx2]);	glVertex2f(px2, py2);
 			set_colormap(rho[idx3]);	glVertex2f(px3, py3);
+                        
 		}
+                
 	}
 	glEnd();
+        set_color_bar();
+        displayText(0,0,1,0,0,"20");
 	}
 
 	if (draw_vecs)
@@ -330,49 +450,6 @@ void visualize(void)
 
 //------ INTERACTION CODE STARTS HERE -----------------------------------------------------------------
 
-
-//--------------------------------  Color_Bar  --------------------------------- 
-void Color_Bar ()
-{
-    
-    int window_w = 250;
-    int window_h = 50; 
-    int i;
- 
-    static float col[6][3] = {{1,0,0},  // red
-	                      {0,1,0},  // green
-	                      {0,0,1},  // blue
-	                      {1,1,0},  // yellow
-	                      {0,1,1},  // cyan
-	                      {1,0,1}}; // purple
- 
-    static int bot[6][2] = {{0,0}, {50,0}, {100,0}, {150,0}, {200,0}, {250,0}},
-	       top[6][2] = {{0,50}, {50,50}, {100,50}, {150,50}, {200,50}, {250,50}};
- 
-    // Set up coordinate system to position color bar near bottom of window.
- 
-    glMatrixMode (GL_PROJECTION);
-    glLoadIdentity ();
-    glOrtho (0.0f, window_w, window_h, 0.0f, 0.0f, 1.0f);
-    glMatrixMode (GL_MODELVIEW);
-    glLoadIdentity ();
- 
-    // Use Quad strips to make color bar.
-    glBegin (GL_QUAD_STRIP);
-       for (i = 0; i <= 5; i++)  {
-          glColor3fv  (col[i]);
-	  glVertex2iv (bot[i]);
-	  glVertex2iv (top[i]);
-       }
-    glEnd ();
- 
-    // Label ends of color bar.
- 
-    glColor3f (1, 1, 1);
- 
-//    bitmap_output (-5, 7, 0, "Min_H", GLUT_BITMAP_9_BY_15);
-//    bitmap_output (95, 7, 0, "Max_H", GLUT_BITMAP_9_BY_15);
-}
 
 
 //display: Handle window redrawing events. Simply delegates to visualize().
@@ -490,9 +567,10 @@ int main(int argc, char **argv)
 	init_simulation(DIM);	//initialize the simulation data structures
         
         
-        glutInitWindowSize(300,50);
-        glutCreateWindow("value");
-        glutDisplayFunc(display2);
+//        glutInitWindowSize(300,50);
+//        glutCreateWindow("value");
+//        glutDisplayFunc(display2);
+//	glutIdleFunc(do_one_simulation_step2);
         
         
 	glutMainLoop();			//calls do_one_simulation_step, keyboard, display, drag, reshape
