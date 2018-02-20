@@ -1,0 +1,118 @@
+fluids.c:190:4: warning: 'glutPostRedisplay' is deprecated: first deprecated in macOS 10.9 [-Wdeprecated-declarations]
+          glutPostRedisplay();
+          ^
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.13.sdk/System/Library/Frameworks/GLUT.framework/Headers/glut.h:444:22: note: 'glutPostRedisplay' has been explicitly marked deprecated here
+extern void APIENTRY glutPostRedisplay(void) OPENGL_DEPRECATED(10_0, 10_9);
+                     ^
+fluids.c:223:13: warning: variable 'R' is used uninitialized whenever 'if' condition is false [-Wsometimes-uninitialized]
+   else if (scalar_col==COLOR_BANDS)
+            ^~~~~~~~~~~~~~~~~~~~~~~
+fluids.c:230:14: note: uninitialized use occurs here
+   glColor3f(R,G,B);
+             ^
+fluids.c:223:9: note: remove the 'if' if its condition is always true
+   else if (scalar_col==COLOR_BANDS)
+        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+fluids.c:213:11: note: initialize the variable 'R' to silence this warning
+   float R,G,B;
+          ^
+           = 0.0
+fluids.c:223:13: warning: variable 'G' is used uninitialized whenever 'if' condition is false [-Wsometimes-uninitialized]
+   else if (scalar_col==COLOR_BANDS)
+            ^~~~~~~~~~~~~~~~~~~~~~~
+fluids.c:230:16: note: uninitialized use occurs here
+   glColor3f(R,G,B);
+               ^
+fluids.c:223:9: note: remove the 'if' if its condition is always true
+   else if (scalar_col==COLOR_BANDS)
+        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+fluids.c:213:13: note: initialize the variable 'G' to silence this warning
+   float R,G,B;
+            ^
+             = 0.0
+fluids.c:223:13: warning: variable 'B' is used uninitialized whenever 'if' condition is false [-Wsometimes-uninitialized]
+   else if (scalar_col==COLOR_BANDS)
+            ^~~~~~~~~~~~~~~~~~~~~~~
+fluids.c:230:18: note: uninitialized use occurs here
+   glColor3f(R,G,B);
+                 ^
+fluids.c:223:9: note: remove the 'if' if its condition is always true
+   else if (scalar_col==COLOR_BANDS)
+        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+fluids.c:213:15: note: initialize the variable 'B' to silence this warning
+   float R,G,B;
+              ^
+               = 0.0
+fluids.c:326:2: warning: 'glutSwapBuffers' is deprecated: first deprecated in macOS 10.9 [-Wdeprecated-declarations]
+        glutSwapBuffers();
+        ^
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.13.sdk/System/Library/Frameworks/GLUT.framework/Headers/glut.h:448:22: note: 'glutSwapBuffers' has been explicitly marked deprecated here
+extern void APIENTRY glutSwapBuffers(void) OPENGL_DEPRECATED(10_0, 10_9);
+                     ^
+fluids.c:335:2: warning: 'gluOrtho2D' is deprecated: first deprecated in macOS 10.9 - "Use GLKMatrix4MakeOrtho" [-Wdeprecated-declarations]
+        gluOrtho2D(0.0, (GLdouble)w, 0.0, (GLdouble)h);
+        ^
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.13.sdk/System/Library/Frameworks/OpenGL.framework/Headers/glu.h:276:13: note: 'gluOrtho2D' has been explicitly marked deprecated here
+extern void gluOrtho2D (GLdouble left, GLdouble right, GLdouble bottom, GLdouble top) OPENGL_DEPRECATED_MSG(10_0, 10_9, "Use GLKMatrix4MakeOrtho");
+            ^
+fluids.c:407:2: warning: 'glutInit' is deprecated: first deprecated in macOS 10.9 [-Wdeprecated-declarations]
+        glutInit(&argc, argv);
+        ^
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.13.sdk/System/Library/Frameworks/GLUT.framework/Headers/glut.h:431:22: note: 'glutInit' has been explicitly marked deprecated here
+extern void APIENTRY glutInit(int *argcp, char **argv) OPENGL_DEPRECATED(10_0, 10_9);
+                     ^
+fluids.c:408:2: warning: 'glutInitDisplayMode' is deprecated: first deprecated in macOS 10.9 [-Wdeprecated-declarations]
+        glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
+        ^
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.13.sdk/System/Library/Frameworks/GLUT.framework/Headers/glut.h:432:22: note: 'glutInitDisplayMode' has been explicitly marked deprecated here
+extern void APIENTRY glutInitDisplayMode(unsigned int mode) OPENGL_DEPRECATED(10_0, 10_9);
+                     ^
+fluids.c:409:2: warning: 'glutInitWindowSize' is deprecated: first deprecated in macOS 10.9 [-Wdeprecated-declarations]
+        glutInitWindowSize(500,500);
+        ^
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.13.sdk/System/Library/Frameworks/GLUT.framework/Headers/glut.h:437:22: note: 'glutInitWindowSize' has been explicitly marked deprecated here
+extern void APIENTRY glutInitWindowSize(int width, int height) OPENGL_DEPRECATED(10_0, 10_9);
+                     ^
+fluids.c:410:2: warning: 'glutCreateWindow' is deprecated: first deprecated in macOS 10.9 [-Wdeprecated-declarations]
+        glutCreateWindow("Real-time smoke simulation and visualization");
+        ^
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.13.sdk/System/Library/Frameworks/GLUT.framework/Headers/glut.h:441:21: note: 'glutCreateWindow' has been explicitly marked deprecated here
+extern int APIENTRY glutCreateWindow(const char *title) OPENGL_DEPRECATED(10_0, 10_9);
+                    ^
+fluids.c:411:2: warning: 'glutDisplayFunc' is deprecated: first deprecated in macOS 10.9 [-Wdeprecated-declarations]
+        glutDisplayFunc(display);
+        ^
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.13.sdk/System/Library/Frameworks/GLUT.framework/Headers/glut.h:505:22: note: 'glutDisplayFunc' has been explicitly marked deprecated here
+extern void APIENTRY glutDisplayFunc(void (*func)(void)) OPENGL_DEPRECATED(10_0, 10_9);
+                     ^
+fluids.c:412:2: warning: 'glutReshapeFunc' is deprecated: first deprecated in macOS 10.9 [-Wdeprecated-declarations]
+        glutReshapeFunc(reshape);
+        ^
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.13.sdk/System/Library/Frameworks/GLUT.framework/Headers/glut.h:506:22: note: 'glutReshapeFunc' has been explicitly marked deprecated here
+extern void APIENTRY glutReshapeFunc(void (*func)(int width, int height)) OPENGL_DEPRECATED(10_0, 10_9);
+                     ^
+fluids.c:413:2: warning: 'glutIdleFunc' is deprecated: first deprecated in macOS 10.9 [-Wdeprecated-declarations]
+        glutIdleFunc(do_one_simulation_step);
+        ^
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.13.sdk/System/Library/Frameworks/GLUT.framework/Headers/glut.h:513:22: note: 'glutIdleFunc' has been explicitly marked deprecated here
+extern void APIENTRY glutIdleFunc(void (*func)(void)) OPENGL_DEPRECATED(10_0, 10_9);
+                     ^
+fluids.c:414:2: warning: 'glutKeyboardFunc' is deprecated: first deprecated in macOS 10.9 [-Wdeprecated-declarations]
+        glutKeyboardFunc(keyboard);
+        ^
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.13.sdk/System/Library/Frameworks/GLUT.framework/Headers/glut.h:507:22: note: 'glutKeyboardFunc' has been explicitly marked deprecated here
+extern void APIENTRY glutKeyboardFunc(void (*func)(unsigned char key, int x, int y)) OPENGL_DEPRECATED(10_0, 10_9);
+                     ^
+fluids.c:415:2: warning: 'glutMotionFunc' is deprecated: first deprecated in macOS 10.9 [-Wdeprecated-declarations]
+        glutMotionFunc(drag);
+        ^
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.13.sdk/System/Library/Frameworks/GLUT.framework/Headers/glut.h:509:22: note: 'glutMotionFunc' has been explicitly marked deprecated here
+extern void APIENTRY glutMotionFunc(void (*func)(int x, int y)) OPENGL_DEPRECATED(10_0, 10_9);
+                     ^
+fluids.c:418:2: warning: 'glutMainLoop' is deprecated: first deprecated in macOS 10.9 [-Wdeprecated-declarations]
+        glutMainLoop();                 //calls do_one_simulation_step, keyboard, display, drag, reshape
+        ^
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.13.sdk/System/Library/Frameworks/GLUT.framework/Headers/glut.h:438:22: note: 'glutMainLoop' has been explicitly marked deprecated here
+extern void APIENTRY glutMainLoop(void) OPENGL_DEPRECATED(10_0, 10_9);
+                     ^
+16 warnings generated.

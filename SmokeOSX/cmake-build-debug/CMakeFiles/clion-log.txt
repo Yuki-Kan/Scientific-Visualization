@@ -1,0 +1,56 @@
+/Applications/CLion.app/Contents/bin/cmake/bin/cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=/Users/Yukiii/Downloads/usr/local/bin/gfortran -G "CodeBlocks - Unix Makefiles" /Users/Yukiii/Documents/8_Sci_Visulization/SmokeOSX
+-- The C compiler identification is unknown
+-- The CXX compiler identification is AppleClang 9.0.0.9000039
+-- Check for working C compiler: /Users/Yukiii/Downloads/usr/local/bin/gfortran
+-- Check for working C compiler: /Users/Yukiii/Downloads/usr/local/bin/gfortran -- broken
+CMake Error at /Applications/CLion.app/Contents/bin/cmake/share/cmake-3.9/Modules/CMakeTestCCompiler.cmake:51 (message):
+  The C compiler "/Users/Yukiii/Downloads/usr/local/bin/gfortran" is not able
+  to compile a simple test program.
+
+  It fails with the following output:
+
+   Change Dir: /Users/Yukiii/Documents/8_Sci_Visulization/SmokeOSX/cmake-build-debug/CMakeFiles/CMakeTmp
+
+  
+
+  Run Build Command:"/usr/bin/make" "cmTC_65b0c/fast"
+
+  /Applications/Xcode.app/Contents/Developer/usr/bin/make -f
+  CMakeFiles/cmTC_65b0c.dir/build.make CMakeFiles/cmTC_65b0c.dir/build
+
+  Building C object CMakeFiles/cmTC_65b0c.dir/testCCompiler.c.o
+
+  /Users/Yukiii/Downloads/usr/local/bin/gfortran -o
+  CMakeFiles/cmTC_65b0c.dir/testCCompiler.c.o -c
+  /Users/Yukiii/Documents/8_Sci_Visulization/SmokeOSX/cmake-build-debug/CMakeFiles/CMakeTmp/testCCompiler.c
+
+
+  dyld: Library not loaded: /usr/local/lib/libmpc.3.dylib
+
+    Referenced from: /Users/Yukiii/Downloads/usr/local/bin/../libexec/gcc/x86_64-apple-darwin15.6.0/7.1.0/cc1
+    Reason: image not found
+
+  gfortran: internal compiler error: Abort trap: 6 (program cc1)
+
+  Please submit a full bug report,
+
+  with preprocessed source if appropriate.
+
+  See <https://gcc.gnu.org/bugs/> for instructions.
+
+  make[1]: *** [CMakeFiles/cmTC_65b0c.dir/testCCompiler.c.o] Error 4
+
+  make: *** [cmTC_65b0c/fast] Error 2
+
+  
+
+  
+
+  CMake will not be able to correctly generate this project.
+Call Stack (most recent call first):
+  CMakeLists.txt:2 (project)
+
+
+-- Configuring incomplete, errors occurred!
+See also "/Users/Yukiii/Documents/8_Sci_Visulization/SmokeOSX/cmake-build-debug/CMakeFiles/CMakeOutput.log".
+See also "/Users/Yukiii/Documents/8_Sci_Visulization/SmokeOSX/cmake-build-debug/CMakeFiles/CMakeError.log".
