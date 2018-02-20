@@ -1,0 +1,39 @@
+﻿C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\Common7\IDE\VC\VCTargets\Microsoft.Cpp.Common.props(144,5): warning MSB4211: 正要將屬性 "WindowsTargetPlatformVersion" 第一次設定為某個值，但是它已經在 "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\Common7\IDE\VC\VCTargets\Microsoft.Cpp.WindowsSDK.props (29,5)" 使用過了。
+  algebra3.cpp
+  arcball.cpp
+  glui.cpp
+  glui_add_controls.cpp
+  glui_bitmaps.cpp
+  glui_bitmap_img_data.cpp
+  glui_button.cpp
+  glui_checkbox.cpp
+  glui_column.cpp
+  glui_commandline.cpp
+  glui_control.cpp
+  glui_edittext.cpp
+  glui_filebrowser.cpp
+  glui_list.cpp
+  glui_listbox.cpp
+  glui_mouse_iaction.cpp
+  glui_node.cpp
+  glui_panel.cpp
+  glui_radio.cpp
+  glui_rollout.cpp
+  正在產生程式碼...
+  正在編譯...
+  glui_rotation.cpp
+  glui_scrollbar.cpp
+  glui_separator.cpp
+  glui_spinner.cpp
+  glui_statictext.cpp
+  glui_string.cpp
+  glui_textbox.cpp
+  glui_translation.cpp
+  glui_tree.cpp
+  glui_treepanel.cpp
+  glui_window.cpp
+  quaternion.cpp
+  正在產生程式碼...
+C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\Common7\IDE\VC\VCTargets\Microsoft.CppBuild.targets(1371,5): warning MSB8012: TargetPath(C:\Users\Andrew X\Documents\GitHub\scientific_visualization\SmokeWin\glui-2.36\src\msvc\.\Debug\_glui library.lib) 與 Library 的 OutputFile 屬性值 (C:\Users\Andrew X\Documents\GitHub\scientific_visualization\SmokeWin\glui-2.36\src\msvc\lib\glui32d.lib) 不相符。這可能會導致您的專案建置不正確。若要改正這種情況，請確認 $(OutDir)、$(TargetName) 和 $(TargetExt) 屬性值必須與 %(Lib.OutputFile) 中指定的值相符。
+C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\Common7\IDE\VC\VCTargets\Microsoft.CppBuild.targets(1373,5): warning MSB8012: TargetName(_glui library) 與 Library 的 OutputFile 屬性值 (glui32d) 不相符。這可能會導致您的專案建置不正確。若要改正這種情況，請確認 $(OutDir)、$(TargetName) 和 $(TargetExt) 屬性值必須與 %(Lib.OutputFile) 中指定的值相符。
+  glui.vcxproj -> C:\Users\Andrew X\Documents\GitHub\scientific_visualization\SmokeWin\glui-2.36\src\msvc\.\Debug\_glui library.lib
