@@ -1,0 +1,1077 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configurationDescriptor version="100">
+  <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
+    <df root="." name="0">
+      <df name="fftw-2.1.5">
+        <df name="sourceAndDoc">
+          <df name="fftw">
+            <in>config.c</in>
+            <in>executor.c</in>
+            <in>fftwf77.c</in>
+            <in>fftwnd.c</in>
+            <in>fn_1.c</in>
+            <in>fn_10.c</in>
+            <in>fn_11.c</in>
+            <in>fn_12.c</in>
+            <in>fn_13.c</in>
+            <in>fn_14.c</in>
+            <in>fn_15.c</in>
+            <in>fn_16.c</in>
+            <in>fn_2.c</in>
+            <in>fn_3.c</in>
+            <in>fn_32.c</in>
+            <in>fn_4.c</in>
+            <in>fn_5.c</in>
+            <in>fn_6.c</in>
+            <in>fn_64.c</in>
+            <in>fn_7.c</in>
+            <in>fn_8.c</in>
+            <in>fn_9.c</in>
+            <in>fni_1.c</in>
+            <in>fni_10.c</in>
+            <in>fni_11.c</in>
+            <in>fni_12.c</in>
+            <in>fni_13.c</in>
+            <in>fni_14.c</in>
+            <in>fni_15.c</in>
+            <in>fni_16.c</in>
+            <in>fni_2.c</in>
+            <in>fni_3.c</in>
+            <in>fni_32.c</in>
+            <in>fni_4.c</in>
+            <in>fni_5.c</in>
+            <in>fni_6.c</in>
+            <in>fni_64.c</in>
+            <in>fni_7.c</in>
+            <in>fni_8.c</in>
+            <in>fni_9.c</in>
+            <in>ftw_10.c</in>
+            <in>ftw_16.c</in>
+            <in>ftw_2.c</in>
+            <in>ftw_3.c</in>
+            <in>ftw_32.c</in>
+            <in>ftw_4.c</in>
+            <in>ftw_5.c</in>
+            <in>ftw_6.c</in>
+            <in>ftw_64.c</in>
+            <in>ftw_7.c</in>
+            <in>ftw_8.c</in>
+            <in>ftw_9.c</in>
+            <in>ftwi_10.c</in>
+            <in>ftwi_16.c</in>
+            <in>ftwi_2.c</in>
+            <in>ftwi_3.c</in>
+            <in>ftwi_32.c</in>
+            <in>ftwi_4.c</in>
+            <in>ftwi_5.c</in>
+            <in>ftwi_6.c</in>
+            <in>ftwi_64.c</in>
+            <in>ftwi_7.c</in>
+            <in>ftwi_8.c</in>
+            <in>ftwi_9.c</in>
+            <in>generic.c</in>
+            <in>malloc.c</in>
+            <in>planner.c</in>
+            <in>putils.c</in>
+            <in>rader.c</in>
+            <in>timer.c</in>
+            <in>twiddle.c</in>
+            <in>wisdom.c</in>
+            <in>wisdomio.c</in>
+          </df>
+          <df name="fortran">
+            <in>f77_test.F</in>
+            <in>fftw_f77.i</in>
+          </df>
+          <df name="matlab">
+            <in>fftw.c</in>
+            <in>fftw.m</in>
+          </df>
+          <df name="mpi">
+            <in>TOMS_transpose.c</in>
+            <in>fftw_f77_mpi.c</in>
+            <in>fftw_mpi.c</in>
+            <in>fftw_mpi_test.c</in>
+            <in>fftwnd_mpi.c</in>
+            <in>rfftw_f77_mpi.c</in>
+            <in>rfftw_mpi_test.c</in>
+            <in>rfftwnd_mpi.c</in>
+            <in>sched.c</in>
+            <in>test_sched.c</in>
+            <in>test_transpose_mpi.c</in>
+            <in>transpose_mpi.c</in>
+          </df>
+          <df name="rfftw">
+            <in>fcr_1.c</in>
+            <in>fcr_10.c</in>
+            <in>fcr_11.c</in>
+            <in>fcr_12.c</in>
+            <in>fcr_128.c</in>
+            <in>fcr_13.c</in>
+            <in>fcr_14.c</in>
+            <in>fcr_15.c</in>
+            <in>fcr_16.c</in>
+            <in>fcr_2.c</in>
+            <in>fcr_3.c</in>
+            <in>fcr_32.c</in>
+            <in>fcr_4.c</in>
+            <in>fcr_5.c</in>
+            <in>fcr_6.c</in>
+            <in>fcr_64.c</in>
+            <in>fcr_7.c</in>
+            <in>fcr_8.c</in>
+            <in>fcr_9.c</in>
+            <in>fhb_10.c</in>
+            <in>fhb_16.c</in>
+            <in>fhb_2.c</in>
+            <in>fhb_3.c</in>
+            <in>fhb_32.c</in>
+            <in>fhb_4.c</in>
+            <in>fhb_5.c</in>
+            <in>fhb_6.c</in>
+            <in>fhb_7.c</in>
+            <in>fhb_8.c</in>
+            <in>fhb_9.c</in>
+            <in>fhf_10.c</in>
+            <in>fhf_16.c</in>
+            <in>fhf_2.c</in>
+            <in>fhf_3.c</in>
+            <in>fhf_32.c</in>
+            <in>fhf_4.c</in>
+            <in>fhf_5.c</in>
+            <in>fhf_6.c</in>
+            <in>fhf_7.c</in>
+            <in>fhf_8.c</in>
+            <in>fhf_9.c</in>
+            <in>frc_1.c</in>
+            <in>frc_10.c</in>
+            <in>frc_11.c</in>
+            <in>frc_12.c</in>
+            <in>frc_128.c</in>
+            <in>frc_13.c</in>
+            <in>frc_14.c</in>
+            <in>frc_15.c</in>
+            <in>frc_16.c</in>
+            <in>frc_2.c</in>
+            <in>frc_3.c</in>
+            <in>frc_32.c</in>
+            <in>frc_4.c</in>
+            <in>frc_5.c</in>
+            <in>frc_6.c</in>
+            <in>frc_64.c</in>
+            <in>frc_7.c</in>
+            <in>frc_8.c</in>
+            <in>frc_9.c</in>
+            <in>rconfig.c</in>
+            <in>rexec.c</in>
+            <in>rexec2.c</in>
+            <in>rfftwf77.c</in>
+            <in>rfftwnd.c</in>
+            <in>rgeneric.c</in>
+            <in>rplanner.c</in>
+          </df>
+          <df name="tests">
+            <in>fftw_test.c</in>
+            <in>rfftw_test.c</in>
+            <in>test_main.c</in>
+          </df>
+          <df name="threads">
+            <in>executor_threads.c</in>
+            <in>fftw_f77_threads.c</in>
+            <in>fftw_threads.c</in>
+            <in>fftw_threads_test.c</in>
+            <in>fftwnd_threads.c</in>
+            <in>rexec2_threads.c</in>
+            <in>rexec_threads.c</in>
+            <in>rfftw_f77_threads.c</in>
+            <in>rfftw_threads_test.c</in>
+            <in>rfftwnd_threads.c</in>
+          </df>
+        </df>
+      </df>
+      <in>fluids.c</in>
+    </df>
+    <logicalFolder name="ExternalFiles"
+                   displayName="重要文件"
+                   projectFiles="false"
+                   kind="IMPORTANT_FILES_FOLDER">
+      <itemPath>Makefile</itemPath>
+      <itemPath>nbproject/private/launcher.properties</itemPath>
+    </logicalFolder>
+  </logicalFolder>
+  <sourceFolderFilter>^(nbproject)$</sourceFolderFilter>
+  <sourceRootList>
+    <Elem>.</Elem>
+  </sourceRootList>
+  <projectmakefile>Makefile</projectmakefile>
+  <confs>
+    <conf name="Default" type="0">
+      <toolsSet>
+        <compilerSet>GNU|GNU</compilerSet>
+        <dependencyChecking>false</dependencyChecking>
+        <rebuildPropChanged>false</rebuildPropChanged>
+      </toolsSet>
+      <codeAssistance>
+      </codeAssistance>
+      <makefileType>
+        <makeTool>
+          <buildCommandWorkingDir>.</buildCommandWorkingDir>
+          <buildCommand>${MAKE} -f Makefile</buildCommand>
+          <cleanCommand>${MAKE} -f Makefile clean</cleanCommand>
+          <executablePath>smoke</executablePath>
+        </makeTool>
+        <preBuild>
+          <preBuildCommandWorkingDir>.</preBuildCommandWorkingDir>
+          <preBuildCommand></preBuildCommand>
+        </preBuild>
+      </makefileType>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/config.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/executor.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/fftwf77.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/fftwnd.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/fn_1.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/fn_10.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/fn_11.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/fn_12.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/fn_13.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/fn_14.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/fn_15.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/fn_16.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/fn_2.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/fn_3.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/fn_32.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/fn_4.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/fn_5.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/fn_6.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/fn_64.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/fn_7.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/fn_8.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/fn_9.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/fni_1.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/fni_10.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/fni_11.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/fni_12.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/fni_13.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/fni_14.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/fni_15.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/fni_16.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/fni_2.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/fni_3.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/fni_32.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/fni_4.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/fni_5.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/fni_6.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/fni_64.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/fni_7.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/fni_8.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/fni_9.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/ftw_10.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/ftw_16.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/ftw_2.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/ftw_3.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/ftw_32.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/ftw_4.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/ftw_5.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/ftw_6.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/ftw_64.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/ftw_7.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/ftw_8.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/ftw_9.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/ftwi_10.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/ftwi_16.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/ftwi_2.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/ftwi_3.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/ftwi_32.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/ftwi_4.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/ftwi_5.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/ftwi_6.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/ftwi_64.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/ftwi_7.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/ftwi_8.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/ftwi_9.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/generic.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/malloc.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/planner.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/putils.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/rader.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/timer.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/twiddle.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/wisdom.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fftw/wisdomio.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fortran/f77_test.F"
+            ex="false"
+            tool="2"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/fortran/fftw_f77.i"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/matlab/fftw.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/matlab/fftw.m"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/mpi/TOMS_transpose.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/mpi/fftw_f77_mpi.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/mpi/fftw_mpi.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/mpi/fftw_mpi_test.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/mpi/fftwnd_mpi.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/mpi/rfftw_f77_mpi.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/mpi/rfftw_mpi_test.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/mpi/rfftwnd_mpi.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/mpi/sched.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/mpi/test_sched.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/mpi/test_transpose_mpi.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/mpi/transpose_mpi.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/fcr_1.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/fcr_10.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/fcr_11.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/fcr_12.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/fcr_128.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/fcr_13.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/fcr_14.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/fcr_15.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/fcr_16.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/fcr_2.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/fcr_3.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/fcr_32.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/fcr_4.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/fcr_5.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/fcr_6.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/fcr_64.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/fcr_7.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/fcr_8.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/fcr_9.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/fhb_10.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/fhb_16.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/fhb_2.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/fhb_3.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/fhb_32.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/fhb_4.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/fhb_5.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/fhb_6.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/fhb_7.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/fhb_8.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/fhb_9.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/fhf_10.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/fhf_16.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/fhf_2.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/fhf_3.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/fhf_32.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/fhf_4.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/fhf_5.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/fhf_6.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/fhf_7.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/fhf_8.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/fhf_9.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/frc_1.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/frc_10.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/frc_11.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/frc_12.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/frc_128.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/frc_13.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/frc_14.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/frc_15.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/frc_16.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/frc_2.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/frc_3.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/frc_32.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/frc_4.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/frc_5.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/frc_6.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/frc_64.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/frc_7.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/frc_8.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/frc_9.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/rconfig.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/rexec.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/rexec2.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/rfftwf77.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/rfftwnd.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/rgeneric.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/rfftw/rplanner.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/tests/fftw_test.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/tests/rfftw_test.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/tests/test_main.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/threads/executor_threads.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/threads/fftw_f77_threads.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/threads/fftw_threads.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/threads/fftw_threads_test.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/threads/fftwnd_threads.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/threads/rexec2_threads.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/threads/rexec_threads.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/threads/rfftw_f77_threads.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/threads/rfftw_threads_test.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fftw-2.1.5/sourceAndDoc/threads/rfftwnd_threads.c"
+            ex="false"
+            tool="0"
+            flavor2="0">
+      </item>
+      <item path="fluids.c" ex="false" tool="0" flavor2="0">
+      </item>
+    </conf>
+  </confs>
+</configurationDescriptor>
