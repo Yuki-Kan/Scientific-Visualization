@@ -2,11 +2,16 @@
 //        the velocity field at the mouse location. Press the indicated keys to change options
 //--------------------------------------------------------------------------------------------------
 
+
 #include <rfftw.h>              //the numerical simulation FFTW library
 #include <stdio.h>              //for printing the help text
 #include <math.h>               //for various math functions
 #include <GLUT/glut.h>            //the GLUT graphics library
+//#include <GL/glui.h>
+#include <string.h>
 
+
+using namespace std;
 
 //--- SIMULATION PARAMETERS ------------------------------------------------------------------------
 const int DIM = 100;			//size of simulation grid
@@ -227,12 +232,22 @@ void rainbow(float value,float* R,float* G,float* B)
    *B = max(0.0f,(3-(float)fabs(value-1)-(float)fabs(value-2))/2);
 }
 
+float s_min = 0;
+float s_max = 1.0f;
 
-void self_rainbow(float value,float* R,float* G,float* B)
+
+void self_rainbow(float s_value,float* R,float* G,float* B)
 {
    const float dx=0.8f;
-   if (value<0) value=0; if (value>1) value=1;
-   value = (6-2*dx)*value+dx;
+   float value;
+//   if (value<0) value=0; if (value>1) value=1;
+   
+   s_value = (s_value < s_min)? s_min : ( s_value > s_max)? s_max : s_value;    //clamp scalar value in [min, max]
+   
+   
+   value = (6-2*dx)* s_value + dx;                             //scale f to [dx, 6 − dx]
+   
+   
       
    *R = max(0.0f,(3-(float)fabs(value-4)-(float)fabs(value-5))/2);
    *G = max(0.0f,(4-(float)fabs(value-2)-(float)fabs(value-4))/2);
@@ -388,6 +403,9 @@ void Color_Bar(void)
 void visualize(void)
 {
 	int        i, j, idx, idx0, idx1, idx2, idx3; double px0,py0,px1,py1,px2,py2,px3,py3;
+
+        std::string smin,smax ;
+        
 	fftw_real  wn = (fftw_real)winWidth / (fftw_real)(DIM + 1);   // Grid cell width
 	fftw_real  hn = (fftw_real)winHeight / (fftw_real)(DIM + 1);  // Grid cell heigh
 
@@ -429,7 +447,12 @@ void visualize(void)
 	}
 	glEnd();
         set_color_bar();
-        displayText(0,0,1,0,0,"20");
+        
+        smin = std:to_string(s_min);
+        smax = std:to_string(s_max);
+        
+        displayText(0,0,1,0,0, smin);
+        displayText(250,0,1,0,0, smax);
 	}
 
 	if (draw_vecs)
@@ -504,6 +527,11 @@ void keyboard(unsigned char key, int x, int y)
 	  case 'm': scalar_col++; if (scalar_col>COLOR_BANDS) scalar_col=COLOR_BLACKWHITE; break;
 	  case 'a': frozen = 1-frozen; break;
 	  case 'q': exit(0);
+          case '1': s_min -= 0.1; break;
+          case '2': s_min += 0.1; if (s_min >= s_max) s_min -= 0.1; break;
+          case '3': s_max -= 0.1; if (s_max <= s_min) s_max += 0.1; break; 
+          case '4': s_max += 0.1; break;    
+              
 	}
 }
 
@@ -551,6 +579,10 @@ int main(int argc, char **argv)
 	printf("y:     toggle drawing hedgehogs on/off\n");
 	printf("m:     toggle thru scalar coloring\n");
 	printf("a:     toggle the animation on/off\n");
+        printf("1:     decrease min");
+        printf("2:     increase min");
+        printf("3:     decrease max");
+        printf("4:     increase max");
 	printf("q:     quit\n\n");
 
         
