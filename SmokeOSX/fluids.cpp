@@ -8,10 +8,7 @@
 #include <math.h>               //for various math functions
 #include <GLUT/glut.h>            //the GLUT graphics library
 //#include <GL/glui.h>
-#include <string.h>
-
-
-using namespace std;
+#include <string>
 
 //--- SIMULATION PARAMETERS ------------------------------------------------------------------------
 const int DIM = 100;			//size of simulation grid
@@ -34,7 +31,13 @@ const int COLOR_BLACKWHITE=0;   //different types of color mapping: black-and-wh
 const int COLOR_RAINBOW=1;
 const int COLOR_BANDS=2;
 int   scalar_col = 0;           //method for scalar coloring
+const int RHO=0;   //different datasets of color mapping: rho, velocity, force
+const int VELO=1;
+const int FORCE=2;
+int scalr_data = 0;
 int   frozen = 0;               //toggles on/off the animation
+int   NLEVELS = 2;
+
 
 //---customize parameters
 float col[6][3] ={{1,0,0},  // red
@@ -43,9 +46,9 @@ float col[6][3] ={{1,0,0},  // red
 	                      {1,1,0},  // yellow
 	                      {0,1,1},  // cyan
 	                      {1,0,1}}; // purple;
-const int hh = 15;
-int bot[6][2] = {{0,0}, {50,0}, {100,0}, {150,0}, {200,0}, {250,0}},
-	       top[6][2] = {{0,hh}, {50,hh}, {100,hh}, {150,hh}, {200,hh}, {250,hh}};
+const int hh = 20;
+//int bot[6][2] = {{0,0}, {50,0}, {50,0}, {100,0}, {100,0}, {250,0}},
+//	       top[6][2] = {{0,hh}, {50,hh}, {50,hh}, {100,hh}, {100,hh}, {250,hh}};
 
 
 //------ SIMULATION CODE STARTS HERE -----------------------------------------------------------------
@@ -219,21 +222,26 @@ void do_one_simulation_step2(void)
 
 //------ VISUALIZATION CODE STARTS HERE -----------------------------------------------------------------
 
+float s_min = 0;
+float s_max = 1.0;
+float draw_min = s_min;  
+float draw_max = s_max;
+float test = 0;
 
 //rainbow: Implements a color palette, mapping the scalar 'value' to a rainbow color RGB
-void rainbow(float value,float* R,float* G,float* B)
-{
+void RG_rainbow(float s_value,float* R,float* G,float* B)
+{   
    const float dx=0.8f;
-   if (value<0) value=0; if (value>1) value=1;
-   value = (6-2*dx)*value+dx;
+   float value;
+   s_value = (s_value < s_min)? s_min : ( s_value > s_max)? s_max : s_value; 
+   value = (6-2*dx)*s_value+dx;
+   draw_min = (6-2*dx)* s_min + dx;  
+   draw_max = (6-2*dx)* s_max + dx; 
       
    *R = max(0.0f,(3-(float)fabs(value-4)-(float)fabs(value-5))/2);
    *G = max(0.0f,(4-(float)fabs(value-2)-(float)fabs(value-4))/2);
-   *B = max(0.0f,(3-(float)fabs(value-1)-(float)fabs(value-2))/2);
+   *B = max(0.0f, 0.0f);
 }
-
-float s_min = 0;
-float s_max = 1.0f;
 
 
 void self_rainbow(float s_value,float* R,float* G,float* B)
@@ -242,38 +250,43 @@ void self_rainbow(float s_value,float* R,float* G,float* B)
    float value;
 //   if (value<0) value=0; if (value>1) value=1;
    
-   s_value = (s_value < s_min)? s_min : ( s_value > s_max)? s_max : s_value;    //clamp scalar value in [min, max]
+   draw_min = s_value < draw_min? s_value:draw_min;  
+   draw_max = s_value > draw_max? s_value:draw_max; 
    
+   value = (s_value- draw_min)/(draw_max-draw_min);   
    
-   value = (6-2*dx)* s_value + dx;                             //scale f to [dx, 6 − dx]
+   value = (value < s_min)? s_min : ( value > s_max)? s_max : value;    //clamp scalar value in [min, max]
+                             //scale f to [dx, 6 − dx] 
+   value = (6-2*dx)*value+dx;
    
-   
-      
    *R = max(0.0f,(3-(float)fabs(value-4)-(float)fabs(value-5))/2);
    *G = max(0.0f,(4-(float)fabs(value-2)-(float)fabs(value-4))/2);
-   *B = (0.0f,0.0f);
+   *B = max(0.0f,(3-(float)fabs(value-1)-(float)fabs(value-2))/2);
 }
 
 
+
 //set_colormap: Sets three different types of colormaps
-void set_colormap(float vy)
+void set_colormap(float v_value)
 {
    float R,G,B;
 
-   if (scalar_col==COLOR_BLACKWHITE)
+   
+   if (scalar_col==COLOR_BLACKWHITE) //0
    {
-       R = G = B = vy;
+       R = G = B = v_value;
    }
-   else if (scalar_col==COLOR_RAINBOW)
+   else if (scalar_col==COLOR_RAINBOW) //1
    {
-       self_rainbow(vy,&R,&G,&B);
+       v_value *= NLEVELS; v_value = (int)(v_value); v_value/= NLEVELS;
+       RG_rainbow(v_value,&R,&G,&B);
    }
-   else if (scalar_col==COLOR_BANDS)
-       {
-          const int NLEVELS = 7;
-          vy *= NLEVELS; vy = (int)(vy); vy/= NLEVELS;
-	      rainbow(vy,&R,&G,&B);
-	   }
+   else if (scalar_col==COLOR_BANDS) //2
+    {
+
+        v_value *= NLEVELS; v_value = (int)(v_value); v_value/= NLEVELS;
+        self_rainbow(v_value,&R,&G,&B);
+    }
 
    glColor3f(R,G,B);
 }
@@ -314,60 +327,91 @@ void displayText( float x, float y, int r, int g, int b, const char *string ) {
 }
 
 
+
 //--------------------------------  Color_Bar  --------------------------------- 
 
-void draw_color_bar(float temp[6][3]){
+
+float calculate_color_R(float val){
+    float dx = 0.8f;
+    float value_ = (6-2*dx)* val + dx;
+    return max(0.0f,(3-(float)fabs(value_-4)-(float)fabs(value_-5))/2);
+}
+
+float calculate_color_G(float val){
+    float dx = 0.8f;
+    float value_ = (6-2*dx)* val + dx;
+    return max(0.0f,(4-(float)fabs(value_-2)-(float)fabs(value_-4))/2);
+}
+
+float calculate_color_B(float val){
+    float dx = 0.8f;
+    float value_ = (6-2*dx)* val + dx;
+    return max(0.0f,(3-(float)fabs(value_-1)-(float)fabs(value_-2))/2);
+}
+
+
+void draw_color_bar(){
     int i;
+    float band_w = 400;
     
+    float unit_length = band_w/(NLEVELS + 1);
+    float unit_color = (s_max - s_min)/(NLEVELS);
     // Use Quad strips to make color bar.
     glBegin (GL_QUAD_STRIP);
-       for (i = 0; i <= 5; i++)  {
-          glColor3fv  (temp[i]);
-	  glVertex2iv (bot[i]);
-	  glVertex2iv (top[i]);
-       }
+     if (scalar_col==COLOR_BLACKWHITE)
+        {
+            float temp_color[3] = {0.0f, 0.0f, 0.0f};
+            glColor3fv (temp_color);
+            int unit_left[2] = {winWidth-hh, 0};
+            glVertex2iv (unit_left);
+            int unit_right[2] = {winWidth, 0};
+            glVertex2iv (unit_right);
+            
+            float temp_color2[3] = {s_max, s_max, s_max};
+            glColor3fv  (temp_color2);
+            int unit_left2[2] = {winWidth-hh, band_w};
+            glVertex2iv (unit_left2);
+            int unit_right2[2] = {winWidth, band_w};
+            glVertex2iv (unit_right2);
+        }else{
+            for (i = 0; i <= NLEVELS; i++)  {
+               //float temp_color[3] = {start[0] + i*unit_color[0], start[1] + i*unit_color[1], start[2] + i*unit_color[2]};
+                float temp_color[3] = {calculate_color_R(s_min + i*unit_color), calculate_color_G(s_min + i*unit_color), calculate_color_B(s_min + i*unit_color)};
+
+               if(scalar_col==COLOR_RAINBOW)
+            {
+                temp_color[0] = calculate_color_R(s_min + i*unit_color);
+                temp_color[1] = calculate_color_G(s_min + i*unit_color);
+                temp_color[2] = 0.0f;
+            }
+
+              else if(scalar_col==COLOR_BANDS)
+            {
+               temp_color[0] = calculate_color_R(s_min + i*unit_color);
+               temp_color[1] = calculate_color_G(s_min + i*unit_color);
+               temp_color[2] = calculate_color_B(s_min + i*unit_color);
+
+            }
+
+               glColor3fv  (temp_color);
+               int unit_left[2] = {winWidth-hh, i*unit_length};
+               glVertex2iv (unit_left);
+               int unit_right[2] = {winWidth, i*unit_length};
+               glVertex2iv (unit_right);
+
+               glColor3fv  (temp_color);
+               int unit2_left[2] = {winWidth - hh, (i+1)*unit_length};
+               glVertex2iv (unit2_left);
+               int unit2_right[2] = {winWidth, (i+1)*unit_length};
+               glVertex2iv (unit2_right);
+            }
+        }
     glEnd ();
 }
 
+
 void set_color_bar(){
-    int i;
-    if (scalar_col==COLOR_BLACKWHITE)
-   {
-        float temp_array[6][3] = {{1,1,1},  // red
-                                  {0.5,0.5,0.5},  // green     
-                                  {0.5,0.5,0.5},  // green
-                                  {0.5,0.5,0.5},  // green
-                                  {0.5,0.5,0.5},  // green
-//                                  {0,0,1},  // blue
-//                                  {1,1,0},  // yellow
-//                                  {0,1,1},  // cyan
-                                  {0,0,0}}; // purple
-       draw_color_bar(temp_array);
-   }
-    
-    else if(scalar_col==COLOR_RAINBOW)
-   {
-        // self-rainbow: R and G
-        float temp_array[6][3] = {{1,0,0},  // red
-	                      {0.5,0.5,0},  // green
-	                      {0.5,0.5,0},  // blue
-	                      {0.5,0.5,0},  // green
-	                      {0.5,0.5,0},  // cyan
-	                      {0,1,0}}; // purple
-        draw_color_bar(temp_array);
-    }
-    
-    else if(scalar_col==COLOR_BANDS)
-    {
-         float temp_array[6][3] = {{1,0,0},  // red
-	                      {0,1,0},  // green
-	                      {0,0,1},  // blue
-	                      {1,1,0},  // yellow
-	                      {0,1,1},  // cyan
-	                      {1,0,1}}; // purple
-         draw_color_bar(temp_array);
-        
-    }
+    draw_color_bar();
 }
 
 void Color_Bar(void)
@@ -389,7 +433,6 @@ void Color_Bar(void)
  
     // Use Quad strips to make color bar.
     set_color_bar();
- 
     // Label ends of color bar.
  
     glColor3f (1, 1, 1);
@@ -404,7 +447,7 @@ void visualize(void)
 {
 	int        i, j, idx, idx0, idx1, idx2, idx3; double px0,py0,px1,py1,px2,py2,px3,py3;
 
-        std::string smin,smax ;
+        std::string smin,smin2,smin3,smax ;
         
 	fftw_real  wn = (fftw_real)winWidth / (fftw_real)(DIM + 1);   // Grid cell width
 	fftw_real  hn = (fftw_real)winHeight / (fftw_real)(DIM + 1);  // Grid cell heigh
@@ -434,25 +477,48 @@ void visualize(void)
 			py3  = hn + (fftw_real)j * hn;
 			idx3 = (j * DIM) + (i + 1);
 
-			set_colormap(rho[idx0]);	glVertex2f(px0, py0);
-			set_colormap(rho[idx1]);	glVertex2f(px1, py1);
-			set_colormap(rho[idx2]);	glVertex2f(px2, py2);
+                        if(scalr_data == RHO){
+                            set_colormap(rho[idx0]);	glVertex2f(px0, py0);
+                            set_colormap(rho[idx1]);	glVertex2f(px1, py1);
+                            set_colormap(rho[idx2]);	glVertex2f(px2, py2);
 
-			set_colormap(rho[idx0]);	glVertex2f(px0, py0);
-			set_colormap(rho[idx2]);	glVertex2f(px2, py2);
-			set_colormap(rho[idx3]);	glVertex2f(px3, py3);
-                        
+                            set_colormap(rho[idx0]);	glVertex2f(px0, py0);
+                            set_colormap(rho[idx2]);	glVertex2f(px2, py2);
+                            set_colormap(rho[idx3]);	glVertex2f(px3, py3);
+                        }
+                        else if (scalr_data== VELO){
+                            float vel0 = 1000*sqrt(vx[idx0]*vx[idx0]+vy[idx0]*vy[idx0]);
+                            float vel1 = 1000*sqrt(vx[idx1]*vx[idx1]+vy[idx1]*vy[idx1]);
+                            float vel2 = 1000*sqrt(vx[idx2]*vx[idx2]+vy[idx2]*vy[idx2]);
+                            float vel3 = 1000*sqrt(vx[idx3]*vx[idx3]+vy[idx3]*vy[idx3]);
+                            
+                            set_colormap(vel0);	glVertex2f(px0, py0);
+                            set_colormap(vel1); glVertex2f(px1, py1);
+                            set_colormap(vel2);	glVertex2f(px2, py2);
+
+                            set_colormap(vel0);	glVertex2f(px0, py0);
+                            set_colormap(vel2);	glVertex2f(px2, py2);
+                            set_colormap(vel3);	glVertex2f(px3, py3);
+                            
+                        }else if (scalr_data== FORCE){
+                            
+                        }
 		}
                 
 	}
 	glEnd();
         set_color_bar();
         
-        smin = std:to_string(s_min);
-        smax = std:to_string(s_max);
-        
-        displayText(0,0,1,0,0, smin);
-        displayText(250,0,1,0,0, smax);
+        float interval = (draw_max-draw_min)/3;
+        smin = std::to_string(draw_min);
+        smin2 = std::to_string(draw_min + interval);
+        smin3 = std::to_string(draw_min + interval*2);
+        smax = std::to_string(draw_max);
+       
+        displayText(winWidth - 2*hh,(winHeight-hh),1,0,0, smax.c_str());
+        displayText(winWidth - 2*hh,(winHeight-hh)*2/3,1,0,0, smin3.c_str());
+        displayText(winWidth - 2*hh,(winHeight-hh)*1/3,1,0,0, smin2.c_str());
+        displayText(winWidth - 2*hh,0,1,0,0, smin.c_str());
 	}
 
 	if (draw_vecs)
@@ -525,13 +591,15 @@ void keyboard(unsigned char key, int x, int y)
 	  case 'y': draw_vecs = 1 - draw_vecs;
 		    if (draw_vecs==0) draw_smoke = 1; break;
 	  case 'm': scalar_col++; if (scalar_col>COLOR_BANDS) scalar_col=COLOR_BLACKWHITE; break;
+	  case 'n': scalr_data++; if (scalr_data>FORCE) scalr_data=RHO; draw_min = 0; draw_max = 1; break;
 	  case 'a': frozen = 1-frozen; break;
 	  case 'q': exit(0);
-          case '1': s_min -= 0.1; break;
+          case '1': s_min -= 0.1; if (s_min < 0) s_min = 0; break;
           case '2': s_min += 0.1; if (s_min >= s_max) s_min -= 0.1; break;
           case '3': s_max -= 0.1; if (s_max <= s_min) s_max += 0.1; break; 
-          case '4': s_max += 0.1; break;    
-              
+          case '4': s_max += 0.1; if (s_max > 1) s_max = 1; break; 
+          case '5': NLEVELS +=1;  if (NLEVELS >= 256) NLEVELS = 256; break;
+          case '6': NLEVELS -=1;  if (NLEVELS <= 2) NLEVELS = 2; break; 
 	}
 }
 
@@ -579,10 +647,12 @@ int main(int argc, char **argv)
 	printf("y:     toggle drawing hedgehogs on/off\n");
 	printf("m:     toggle thru scalar coloring\n");
 	printf("a:     toggle the animation on/off\n");
-        printf("1:     decrease min");
-        printf("2:     increase min");
-        printf("3:     decrease max");
-        printf("4:     increase max");
+        printf("1:     decrease min\n");
+        printf("2:     increase min\n");
+        printf("3:     decrease max\n");
+        printf("4:     increase max\n");
+        printf("5:     increase number of colors (min = 2)\n");
+        printf("6:     decrease number of colors (max = 256)\n");
 	printf("q:     quit\n\n");
 
         
