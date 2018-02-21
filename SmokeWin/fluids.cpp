@@ -36,7 +36,92 @@ const int COLOR_RAINBOW=1;
 const int COLOR_BANDS=2;
 int   scalar_col = 0;           //method for scalar coloring
 int   frozen = 0;               //toggles on/off the animation
+								//  variable representing the window title
+char *window_title = "Real-time smoke simulation and visualization";
 
+//  The id of the main window
+GLuint main_window;
+
+//---customize parameters
+float col[6][3] = { { 1,0,0 },  // red
+{ 0,1,0 },  // green
+{ 0,0,1 },  // blue
+{ 1,1,0 },  // yellow
+{ 0,1,1 },  // cyan
+{ 1,0,1 } }; // purple;
+const int hh = 15;
+int bot[6][2] = { { 0,0 },{ 50,0 },{ 100,0 },{ 150,0 },{ 200,0 },{ 250,0 } },
+top[6][2] = { { 0,hh },{ 50,hh },{ 100,hh },{ 150,hh },{ 200,hh },{ 250,hh } };
+
+
+//*************************************************************************
+//  GLUI Declarations
+//*************************************************************************
+
+//  pointer to the GLUI window
+GLUI * glui_window;
+
+//  Declare live variables (related to GLUI)
+int wireframe = 1;			//  Related to Wireframe Check Box
+int draw = 1;				//  Related to Draw Check Box
+int listbox_item_id = 12;	//  Id of the selected item in the list box
+int radiogroup_item_id = 0; //  Id of the selcted radio button
+float rotation_matrix[16]	//  Rotation Matrix Live Variable Array
+= { 1.0, 0.0, 0.0, 0.0,
+0.0, 1.0, 0.0, 0.0,
+0.0, 0.0, 1.0, 0.0,
+0.0, 0.0, 0.0, 1.0 };
+float translate_xy[2]		//  Translation XY Live Variable
+= { 0, 0 };
+float translate_z = 0;		//  Translation Z Live Variable
+float scale = 1;			//  Spinner Scale Live Variable
+
+							// an array of RGB components
+float color[] = { 1.0, 1.0, 1.0 };
+
+//  Set up the GLUI window and its components
+void setupGLUI();
+
+//  Idle callack function
+void idle();
+
+//  Declare callbacks related to GLUI
+void glui_callback(int arg);
+
+//  Declare the IDs of controls generating callbacks
+enum
+{
+	COLOR_LISTBOX = 0,
+	OBJECTYPE_RADIOGROUP,
+	TRANSLATION_XY,
+	TRANSLATION_Z,
+	ROTATION,
+	SCALE_SPINNER,
+	QUIT_BUTTON
+};
+
+//  The different GLUT shapes
+enum GLUT_SHAPES
+{
+	GLUT_WIRE_CUBE = 0,
+	GLUT_SOLID_CUBE,
+	GLUT_WIRE_SPHERE,
+	GLUT_SOLID_SPHERE,
+	GLUT_WIRE_CONE,
+	GLUT_SOLID_CONE,
+	GLUT_WIRE_TORUS,
+	GLUT_SOLID_TORUS,
+	GLUT_WIRE_DODECAHEDRON,
+	GLUT_SOLID_DODECAHEDRON,
+	GLUT_WIRE_OCTAHEDRON,
+	GLUT_SOLID_OCTAHEDRON,
+	GLUT_WIRE_TETRAHEDRON,
+	GLUT_SOLID_TETRAHEDRON,
+	GLUT_WIRE_ICOSAHEDRON,
+	GLUT_SOLID_ICOSAHEDRON,
+	GLUT_WIRE_TEAPOT,
+	GLUT_SOLID_TEAPOT
+};
 
 
 //------ SIMULATION CODE STARTS HERE -----------------------------------------------------------------
@@ -208,14 +293,15 @@ void rainbow(float value,float* R,float* G,float* B)
    *B = max(0.0,(3-fabs(value-1)-fabs(value-2))/2);
 }
 
-void rainbow2(float value, float* R, float* G, float* B)
+void self_rainbow(float value, float* R, float* G, float* B)
 {
-	const float dx = 0.8;
+	const float dx = 0.8f;
 	if (value<0) value = 0; if (value>1) value = 1;
 	value = (6 - 2 * dx)*value + dx;
-	*R = max(0.0, (3 - fabs(value - 4) - fabs(value - 5)) / 2);
-	*G = max(0.0, (4 - fabs(value - 2) - fabs(value - 4)) / 2);
-	*B = max(0.0, 0.0);
+
+	*R = max(0.0f, (3 - (float)fabs(value - 4) - (float)fabs(value - 5)) / 2);
+	*G = max(0.0f, (4 - (float)fabs(value - 2) - (float)fabs(value - 4)) / 2);
+	*B = (0.0f, 0.0f);
 }
 
 //set_colormap: Sets three different types of colormaps
@@ -226,7 +312,7 @@ void set_colormap(float vy)
    if (scalar_col==COLOR_BLACKWHITE)
        R = G = B = vy;
    else if (scalar_col==COLOR_RAINBOW)
-	   rainbow2(vy,&R,&G,&B);
+	   self_rainbow(vy,&R,&G,&B);
    else if (scalar_col==COLOR_BANDS)
        {  
           const int NLEVELS = 7;
@@ -259,6 +345,103 @@ void direction_to_color(float x, float y, int method)
 	else
 	{ r = g = b = 1; }
 	glColor3f(r,g,b);
+}
+
+
+void displayText(float x, float y, int r, int g, int b, const char *string) {
+	int j = strlen(string);
+
+	glColor3f(r, g, b);
+	glRasterPos2f(x, y);
+	for (int i = 0; i < j; i++) {
+		glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, string[i]);
+	}
+}
+
+
+//--------------------------------  Color_Bar  --------------------------------- 
+
+void draw_color_bar(float temp[6][3]) {
+	int i;
+
+	// Use Quad strips to make color bar.
+	glBegin(GL_QUAD_STRIP);
+	for (i = 0; i <= 5; i++) {
+		glColor3fv(temp[i]);
+		glVertex2iv(bot[i]);
+		glVertex2iv(top[i]);
+	}
+	glEnd();
+}
+
+void set_color_bar() {
+	int i;
+	if (scalar_col == COLOR_BLACKWHITE)
+	{
+		float temp_array[6][3] = { { 1,1,1 },  // red
+		{ 0.5,0.5,0.5 },  // green     
+		{ 0.5,0.5,0.5 },  // green
+		{ 0.5,0.5,0.5 },  // green
+		{ 0.5,0.5,0.5 },  // green
+						  //                                  {0,0,1},  // blue
+						  //                                  {1,1,0},  // yellow
+						  //                                  {0,1,1},  // cyan
+		{ 0,0,0 } }; // purple
+		draw_color_bar(temp_array);
+	}
+
+	else if (scalar_col == COLOR_RAINBOW)
+	{
+		// self-rainbow: R and G
+		float temp_array[6][3] = { { 1,0,0 },  // red
+		{ 0.5,0.5,0 },  // green
+		{ 0.5,0.5,0 },  // blue
+		{ 0.5,0.5,0 },  // green
+		{ 0.5,0.5,0 },  // cyan
+		{ 0,1,0 } }; // purple
+		draw_color_bar(temp_array);
+	}
+
+	else if (scalar_col == COLOR_BANDS)
+	{
+		float temp_array[6][3] = { { 1,0,0 },  // red
+		{ 0,1,0 },  // green
+		{ 0,0,1 },  // blue
+		{ 1,1,0 },  // yellow
+		{ 0,1,1 },  // cyan
+		{ 1,0,1 } }; // purple
+		draw_color_bar(temp_array);
+
+	}
+}
+
+void Color_Bar(void)
+{
+	if (draw_smoke) {
+		printf("---");
+		set_color_bar();
+	}
+	else {
+		int window_w = 250;
+		int window_h = 10;
+
+		// Set up coordinate system to position color bar near bottom of window.
+
+		glMatrixMode(GL_PROJECTION);
+		glLoadIdentity();
+		glOrtho(0.0f, window_w, window_h, 0.0f, 0.0f, 1.0f);
+		glMatrixMode(GL_MODELVIEW);
+		glLoadIdentity();
+
+		// Use Quad strips to make color bar.
+		set_color_bar();
+
+		// Label ends of color bar.
+
+		glColor3f(1, 1, 1);
+	}
+	//    bitmap_output (-5, 7, 0, "Min_H", GLUT_BITMAP_9_BY_15);
+	//    bitmap_output (95, 7, 0, "Max_H", GLUT_BITMAP_9_BY_15);
 }
 
 //visualize: This is the main visualization function
@@ -309,6 +492,8 @@ void visualize(void)
 			}
 		}
 		glEnd();
+		set_color_bar();
+		displayText(0, 0, 1, 0, 0, "20");
 	}
 
 	if (draw_vecs)
@@ -328,49 +513,6 @@ void visualize(void)
 
 
 //------ INTERACTION CODE STARTS HERE -----------------------------------------------------------------
-
-//--------------------------------  Color_Bar  --------------------------------- 
-void Color_Bar()
-{
-
-	int window_w = 250;
-	int window_h = 50;
-	int i;
-
-	static float col[6][3] = { { 1,0,0 },  // red
-	{ 0,1,0 },  // green
-	{ 0,0,1 },  // blue
-	{ 1,1,0 },  // yellow
-	{ 0,1,1 },  // cyan
-	{ 1,0,1 } }; // purple
-
-	static int bot[6][2] = { { 0,0 },{ 50,0 },{ 100,0 },{ 150,0 },{ 200,0 },{ 250,0 } },
-		top[6][2] = { { 0,50 },{ 50,50 },{ 100,50 },{ 150,50 },{ 200,50 },{ 250,50 } };
-
-	// Set up coordinate system to position color bar near bottom of window.
-
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	glOrtho(0.0f, window_w, window_h, 0.0f, 0.0f, 1.0f);
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-
-	// Use Quad strips to make color bar.
-	glBegin(GL_QUAD_STRIP);
-	for (i = 0; i <= 5; i++) {
-		glColor3fv(col[i]);
-		glVertex2iv(bot[i]);
-		glVertex2iv(top[i]);
-	}
-	glEnd();
-
-	// Label ends of color bar.
-
-	glColor3f(1, 1, 1);
-
-	//    bitmap_output (-5, 7, 0, "Min_H", GLUT_BITMAP_9_BY_15);
-	//    bitmap_output (95, 7, 0, "Max_H", GLUT_BITMAP_9_BY_15);
-}
 
 //display: Handle window redrawing events. Simply delegates to visualize().
 void display(void) 
@@ -455,6 +597,295 @@ void drag(int mx, int my)
 	lmx = mx; lmy = my;
 }
 
+//*************************************************************************
+//  GLUI Functions.
+//*************************************************************************
+
+//-------------------------------------------------------------------------
+//  Setup GLUI stuff.
+//-------------------------------------------------------------------------
+void setupGLUI()
+{
+	int window_x = 400;
+	int window_y = 400;
+
+	//  Set idle function
+	GLUI_Master.set_glutIdleFunc(idle);
+
+	//  Create GLUI window
+	glui_window = GLUI_Master.create_glui("Options", 0, window_x - 235, window_y);
+
+	//---------------------------------------------------------------------
+	// 'Object Properties' Panel
+	//---------------------------------------------------------------------
+
+	//  Add the 'Object Properties' Panel to the GLUI window
+	GLUI_Panel *op_panel = glui_window->add_panel("Object Properties");
+
+	//  Add the Draw Check box to the 'Object Properties' Panel
+	glui_window->add_checkbox_to_panel(op_panel, "Draw", &draw);
+
+	//  Add the Wireframe Check box to the 'Object Properties' Panel
+	glui_window->add_checkbox_to_panel(op_panel, "Wireframe", &wireframe);
+
+	//  Add a separator
+	glui_window->add_separator_to_panel(op_panel);
+
+	//  Add the Color listbox to the 'Object Properties' Panel
+	GLUI_Listbox *color_listbox = glui_window->add_listbox_to_panel(op_panel,
+		"Color", &listbox_item_id, COLOR_LISTBOX, glui_callback);
+
+	//  Add the items to the listbox
+	color_listbox->add_item(1, "Black");
+	color_listbox->add_item(2, "Blue");
+	color_listbox->add_item(3, "Cyan");
+	color_listbox->add_item(4, "Dark Grey");
+	color_listbox->add_item(5, "Grey");
+	color_listbox->add_item(6, "Green");
+	color_listbox->add_item(7, "Light Grey");
+	color_listbox->add_item(8, "Magenta");
+	color_listbox->add_item(9, "Orange");
+	color_listbox->add_item(10, "Pink");
+	color_listbox->add_item(11, "Red");
+	color_listbox->add_item(12, "White");
+	color_listbox->add_item(13, "Yellow");
+
+	//  Select the White Color by default
+	color_listbox->set_int_val(12);
+
+	//---------------------------------------------------------------------
+	// 'Object Type' Panel
+	//---------------------------------------------------------------------
+
+	//  Add the 'Object Type' Panel to the GLUI window
+	GLUI_Rollout *ot_rollout = glui_window->add_rollout("Object Type");
+
+	//  Create radio button group
+	GLUI_RadioGroup *ot_group = glui_window->add_radiogroup_to_panel
+	(ot_rollout, &radiogroup_item_id, OBJECTYPE_RADIOGROUP, glui_callback);
+
+	//  Add the radio buttons to the radio group
+	glui_window->add_radiobutton_to_group(ot_group, "Cube");
+	glui_window->add_radiobutton_to_group(ot_group, "Sphere");
+	glui_window->add_radiobutton_to_group(ot_group, "Cone");
+	glui_window->add_radiobutton_to_group(ot_group, "Torus");
+	glui_window->add_radiobutton_to_group(ot_group, "Dodecahedron");
+	glui_window->add_radiobutton_to_group(ot_group, "Octahedron");
+	glui_window->add_radiobutton_to_group(ot_group, "Tetrahedron");
+	glui_window->add_radiobutton_to_group(ot_group, "Icosahedron");
+	glui_window->add_radiobutton_to_group(ot_group, "Teapot");
+
+	//---------------------------------------------------------------------
+	// 'Transformation' Panel
+	//---------------------------------------------------------------------
+
+	//  Add the 'Transformation' Panel to the GLUI window
+	GLUI_Panel *transformation_panel = glui_window->add_panel("Transformation");
+
+	//  Create transformation panel 1 that will contain the Translation controls
+	GLUI_Panel *transformation_panel1 = glui_window->add_panel_to_panel(transformation_panel, "");
+
+	//  Add the xy translation control
+	GLUI_Translation *translation_xy = glui_window->add_translation_to_panel(transformation_panel1, "Translation XY", GLUI_TRANSLATION_XY, translate_xy, TRANSLATION_XY, glui_callback);
+
+	//  Set the translation speed
+	translation_xy->set_speed(0.005);
+
+	//  Add column, but don't draw it
+	glui_window->add_column_to_panel(transformation_panel1, false);
+
+	//  Add the z translation control
+	GLUI_Translation *translation_z = glui_window->add_translation_to_panel(transformation_panel1, "Translation Z", GLUI_TRANSLATION_Z, &translate_z, TRANSLATION_Z, glui_callback);
+
+	//  Set the translation speed
+	translation_z->set_speed(0.005);
+
+	//  Create transformation panel 2 that will contain the rotation and spinner controls
+	GLUI_Panel *transformation_panel2 = glui_window->add_panel_to_panel(transformation_panel, "");
+
+	//  Add the rotation control
+	glui_window->add_rotation_to_panel(transformation_panel2, "Rotation", rotation_matrix, ROTATION, glui_callback);
+
+	//  Add separator
+	glui_window->add_separator_to_panel(transformation_panel2);
+
+	//  Add the scale spinner
+	GLUI_Spinner *spinner = glui_window->add_spinner_to_panel(transformation_panel2, "Scale", GLUI_SPINNER_FLOAT, &scale, SCALE_SPINNER, glui_callback);
+
+	//  Set the limits for the spinner
+	spinner->set_float_limits(-4.0, 4.0);
+
+	//---------------------------------------------------------------------
+	// 'Quit' Button
+	//---------------------------------------------------------------------
+
+	//  Add the Quit Button
+	glui_window->add_button("Quit", QUIT_BUTTON, glui_callback);
+
+	//  Let the GLUI window know where its main graphics window is
+	glui_window->set_main_gfx_window(main_window);
+}
+
+//-------------------------------------------------------------------------
+//  GLUI callback function.
+//-------------------------------------------------------------------------
+void glui_callback(int control_id)
+{
+	//  Notify that this is a GLUI Callback
+	printf("GLUI: ");
+
+	//  Behave based on control ID
+	switch (control_id)
+	{
+		//  Color Listbox item changed
+	case COLOR_LISTBOX:
+
+		printf("Color List box item changed: ");
+
+		switch (listbox_item_id)
+		{
+			//  Select black color
+		case 1:
+			color[0] = 0 / 255.0;
+			color[1] = 0 / 255.0;
+			color[2] = 0 / 255.0;
+			break;
+			//  Select blue color
+		case 2:
+			color[0] = 0 / 255.0;
+			color[1] = 0 / 255.0;
+			color[2] = 255 / 255.0;
+			break;
+			//  Select cyan color
+		case 3:
+			color[0] = 0 / 255.0;
+			color[1] = 255 / 255.0;
+			color[2] = 255 / 255.0;
+			break;
+			//  Select dark grey color
+		case 4:
+			color[0] = 64 / 255.0;
+			color[1] = 64 / 255.0;
+			color[2] = 64 / 255.0;
+			break;
+			//  Select grey color
+		case 5:
+			color[0] = 128 / 255.0;
+			color[1] = 128 / 255.0;
+			color[2] = 128 / 255.0;
+			break;
+			//  Select green color
+		case 6:
+			color[0] = 0 / 255.0;
+			color[1] = 255 / 255.0;
+			color[2] = 0 / 255.0;
+			break;
+			//  Select light gray color
+		case 7:
+			color[0] = 192 / 255.0;
+			color[1] = 192 / 255.0;
+			color[2] = 192 / 255.0;
+			break;
+			//  Select magenta color
+		case 8:
+			color[0] = 192 / 255.0;
+			color[1] = 64 / 255.0;
+			color[2] = 192 / 255.0;
+			break;
+			//  Select orange color
+		case 9:
+			color[0] = 255 / 255.0;
+			color[1] = 192 / 255.0;
+			color[2] = 64 / 255.0;
+			break;
+			//  Select pink color
+		case 10:
+			color[0] = 255 / 255.0;
+			color[1] = 0 / 255.0;
+			color[2] = 255 / 255.0;
+			break;
+			//  Select red color
+		case 11:
+			color[0] = 255 / 255.0;
+			color[1] = 0 / 255.0;
+			color[2] = 0 / 255.0;
+			break;
+			//  Select white color
+		case 12:
+			color[0] = 255 / 255.0;
+			color[1] = 255 / 255.0;
+			color[2] = 255 / 255.0;
+			break;
+			//  Select yellow color
+		case 13:
+			color[0] = 255 / 255.0;
+			color[1] = 255 / 255.0;
+			color[2] = 0 / 255.0;
+			break;
+		}
+
+		printf("Item %d selected.\n", listbox_item_id);
+
+		break;
+
+		//  A Radio Button in the radio group is selected
+	case OBJECTYPE_RADIOGROUP:
+
+		printf("Radio Button %d selected.\n", radiogroup_item_id);
+
+		break;
+
+		//  Translation XY control
+	case TRANSLATION_XY:
+
+		printf("Translating X and Y coordinates: ");
+		printf("X: %f, Y: %f.\n", translate_xy[0], translate_xy[1]);
+
+		break;
+
+		//  Translation Z control
+	case TRANSLATION_Z:
+
+		printf("Translating Z coordinate: ");
+		printf("Z: %f.\n", translate_z);
+
+		break;
+
+
+		//  Scaling
+	case SCALE_SPINNER:
+
+		printf("Scaling Object: %f.\n", scale);
+
+		break;
+
+		//  Quit Button clicked
+	case QUIT_BUTTON:
+
+		printf("Quit Button clicked... Exit!\n");
+
+		exit(1);
+
+		break;
+
+	}
+}
+
+//-------------------------------------------------------------------------
+//  Idle Callback function.
+//
+//  Set the main_window as the current window to avoid sending the
+//  redisplay to the GLUI window rather than the GLUT window. 
+//  Call the Sleep function to stop the GLUI program from causing
+//  starvation.
+//-------------------------------------------------------------------------
+void idle()
+{
+	glutSetWindow(main_window);
+	glutPostRedisplay();
+	Sleep(50);
+}
+
 
 //main: The main program
 int main(int argc, char **argv) 
@@ -475,7 +906,7 @@ int main(int argc, char **argv)
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
 	glutInitWindowSize(500,500);
-	glutCreateWindow("Real-time smoke simulation and visualization");
+	main_window = glutCreateWindow(window_title);
 	glutDisplayFunc(display);
 	glutReshapeFunc(reshape);
 	glutIdleFunc(do_one_simulation_step);
@@ -484,9 +915,12 @@ int main(int argc, char **argv)
 	
 	init_simulation(DIM);	//initialize the simulation data structures	
 
-	glutInitWindowSize(300, 50);
-	glutCreateWindow("value");
-	glutDisplayFunc(display2);
+//	glutInitWindowSize(300, 50);
+//	glutCreateWindow("value");
+//	glutDisplayFunc(display2);
+
+//  Setup all GLUI stuff
+//	setupGLUI();
 
 	glutMainLoop();			//calls do_one_simulation_step, keyboard, display, drag, reshape
 	return 0;
