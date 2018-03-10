@@ -7,7 +7,7 @@
 #include <stdio.h>              //for printing the help text
 #include <math.h>               //for various math functions
 #include <GLUT/glut.h>            //the GLUT graphics library
-//#include <GL/glui.h>
+#include <GLUI/glui.h>
 #include <string>
 #include "transform.h"
 
@@ -27,11 +27,12 @@ int   winWidth, winHeight;      //size of the graphics window, in pixels
 int   color_dir = 0;            //use direction color-coding or not
 float vec_scale = 1000;			//scaling of hedgehogs
 int   draw_smoke = 0;           //draw the smoke or not
-int   draw_vecs = 1;            //draw the vector field or not
+int   draw_vecs = 0;            //draw the vector field or not
 const int COLOR_BLACKWHITE=0;   //different types of color mapping: black-and-white, rainbow, banded
 const int COLOR_RAINBOW=1;
 const int COLOR_BANDS=2;
 int   scalar_col = 0;           //method for scalar coloring
+int vector_col = 0;
 const int RHO=0;   //different datasets of color mapping: rho, velocity, force
 const int VELO=1;
 const int FORCE=2;
@@ -67,9 +68,13 @@ float col[6][3] ={{1,0,0},  // red
 	                      {0,1,1},  // cyan
 	                      {1,0,1}}; // purple;
 const int hh = 20;
-//int bot[6][2] = {{0,0}, {50,0}, {50,0}, {100,0}, {100,0}, {250,0}},
-//	       top[6][2] = {{0,hh}, {50,hh}, {50,hh}, {100,hh}, {100,hh}, {250,hh}};
 
+int main_window;
+int number_of_glyphs = 100;
+std::string glyphs = "hedgehogs";
+float arrow_scale = 100;
+fftw_real  cell_width = ceil((fftw_real)winWidth / (fftw_real)(DIM));   // Grid cell width
+fftw_real  cell_height = ceil((fftw_real)winHeight / (fftw_real)(DIM));  // Grid cell heigh
 
 //------ SIMULATION CODE STARTS HERE -----------------------------------------------------------------
 
@@ -176,7 +181,7 @@ void solve(int n, fftw_real* vx, fftw_real* vy, fftw_real* vx0, fftw_real* vy0, 
            vy[i+n*j] = f*vy0[i+(n+2)*j];
            
            float v_magnitude;
-           v_magnitude = sqrt(vx[i+n*j] * vx[i+n*j] + vy[i+n*j] * vy[i+n*j]);
+           v_magnitude = 100*sqrt(vx[i+n*j] * vx[i+n*j] + vy[i+n*j] * vy[i+n*j]);
            
            if (v_magnitude > v_max){
                v_max = v_magnitude;
@@ -233,7 +238,7 @@ void set_forces(void)
         vx0[i]    = fx[i];
         vy0[i]    = fy[i];
         float f_magnitude;
-        f_magnitude = sqrt(fx[i] * fx[i] + fy[i] * fy[i]);
+        f_magnitude = 100 * sqrt(fx[i] * fx[i] + fy[i] * fy[i]);
         if (f_magnitude > f_max){
             f_max = f_magnitude;
         }
@@ -382,6 +387,34 @@ void set_colormap(float v_value)
 }
 
 
+//set_colormap_scalar: Sets three different types of colormaps
+void set_colormap_scalar(float v_value)
+{
+    float R,G,B;
+    v_value = scale(v_value);
+    
+    if (vector_col==COLOR_BLACKWHITE) //0
+    {
+        R = G = B = v_value;
+    }
+    else if (vector_col==COLOR_RAINBOW) //1
+    {
+        v_value *= NLEVELS; v_value = (int)(v_value); v_value/= NLEVELS;
+        heatmap(v_value,&R,&G,&B);
+    }
+    else if (vector_col==COLOR_BANDS) //2
+    {
+        
+        v_value *= NLEVELS; v_value = (int)(v_value); v_value/= NLEVELS;
+        self_rainbow(v_value,&R,&G,&B);
+    }
+    
+    Rgb color = {R,G,B};
+    Rgb new_color = TransformHS(color, hue, saturation);
+    
+    glColor3f(new_color.r,new_color.g,new_color.b);
+}
+
 //direction_to_color: Set the current color by mapping a direction vector (x,y), using
 //                    the color mapping method 'method'. If method==1, map the vector direction
 //                    using a rainbow colormap. If method==0, simply use the white color
@@ -408,8 +441,6 @@ void direction_to_color(float x, float y, int method)
 
 void displayText( float x, float y, int r, int g, int b, const char *string ) {
 	int j = strlen( string );
- 
-    
 	glColor3f( r, g, b );
 	glRasterPos2f( x, y );
 	for( int i = 0; i < j; i++ ) {
@@ -440,180 +471,142 @@ float calculate_color_B(float val){
     return max(0.0f,(3-(float)fabs(value_-1)-(float)fabs(value_-2))/2);
 }
 
-void draw_color_bar(){
+
+void draw_color_bar_vector(){
     int i;
-    float band_w = 400;
+//    float band_w = 400;
     
-    float unit_length = band_w/(NLEVELS + 1);
+    float unit_length = (winWidth-hh)/(NLEVELS + 1);
     float unit_color = (s_max - s_min)/(NLEVELS);
     // Use Quad strips to make color bar.
     glBegin (GL_QUAD_STRIP);
-     if (scalar_col==COLOR_BLACKWHITE)
-        {
-            float temp_color[3] = {0.0f, 0.0f, 0.0f};
-            glColor3fv (temp_color);
-            int unit_left[2] = {winWidth-hh, 0};
-            glVertex2iv (unit_left);
-            int unit_right[2] = {winWidth, 0};
-            glVertex2iv (unit_right);
+    if (vector_col==COLOR_BLACKWHITE)
+    {
+        float temp_color[3] = {0.0f, 0.0f, 0.0f};
+        glColor3fv (temp_color);
+        int unit_left[2] = {0, 0};
+        glVertex2iv (unit_left);
+        int unit_right[2] = {0, hh};
+        glVertex2iv (unit_right);
+        
+        float temp_color2[3] = {s_max, s_max, s_max};
+        glColor3fv  (temp_color2);
+        int unit_left2[2] = {winWidth-hh,0};
+        glVertex2iv (unit_left2);
+        int unit_right2[2] = {winWidth-hh, hh};
+        glVertex2iv (unit_right2);
+    }else{
+        for (i = 0; i <= NLEVELS; i++)  {
+            //float temp_color[3] = {start[0] + i*unit_color[0], start[1] + i*unit_color[1], start[2] + i*unit_color[2]};
+            float temp_color[3] = {calculate_color_R(s_min + i*unit_color), calculate_color_G(s_min + i*unit_color), calculate_color_B(s_min + i*unit_color)};
             
-            float temp_color2[3] = {s_max, s_max, s_max};
-            glColor3fv  (temp_color2);
-            int unit_left2[2] = {winWidth-hh, (int)band_w};
-            glVertex2iv (unit_left2);
-            int unit_right2[2] = {winWidth, (int)band_w};
-            glVertex2iv (unit_right2);
-        }else{
-            for (i = 0; i <= NLEVELS; i++)  {
-               //float temp_color[3] = {start[0] + i*unit_color[0], start[1] + i*unit_color[1], start[2] + i*unit_color[2]};
-                float temp_color[3] = {calculate_color_R(s_min + i*unit_color), calculate_color_G(s_min + i*unit_color), calculate_color_B(s_min + i*unit_color)};
-
-               if(scalar_col==COLOR_RAINBOW)
+            if(vector_col==COLOR_RAINBOW)
             {
                 float s_value = s_min + i*unit_color;
                 temp_color[0] = max(0.0f, -((s_value-0.9)*(s_value-0.9))+1);
                 temp_color[1] = max(0.0f, -((s_value-1.5)*(s_value-1.5))+1);
                 temp_color[2] = 0.0f;
             }
-
-              else if(scalar_col==COLOR_BANDS)
+            
+            else if(vector_col==COLOR_BANDS)
             {
-               temp_color[0] = calculate_color_R(s_min + i*unit_color);
-               temp_color[1] = calculate_color_G(s_min + i*unit_color);
-               temp_color[2] = calculate_color_B(s_min + i*unit_color);
-
+                temp_color[0] = calculate_color_R(s_min + i*unit_color);
+                temp_color[1] = calculate_color_G(s_min + i*unit_color);
+                temp_color[2] = calculate_color_B(s_min + i*unit_color);
+                
             }
-
+            
             Rgb color = {temp_color[0], temp_color[1], temp_color[2]};
             Rgb new_color = TransformHS(color, hue, saturation);
-                temp_color[0] = new_color.r;
-                temp_color[1] = new_color.g;
-                temp_color[2] = new_color.b;
-                
-               glColor3fv  (temp_color);
-               int unit_left[2] = {winWidth-hh, (int)(i*unit_length)};
-               glVertex2iv (unit_left);
-               int unit_right[2] = {winWidth, (int)(i*unit_length)};
-               glVertex2iv (unit_right);
-
-               glColor3fv  (temp_color);
-               int unit2_left[2] = {winWidth - hh, (int)((i+1)*unit_length)};
-               glVertex2iv (unit2_left);
-               int unit2_right[2] = {winWidth, (int)((i+1)*unit_length)};
-               glVertex2iv (unit2_right);
-            }
+            temp_color[0] = new_color.r;
+            temp_color[1] = new_color.g;
+            temp_color[2] = new_color.b;
+            
+            glColor3fv  (temp_color);
+            int unit_left[2] = {(int)(i*unit_length), 0};
+            glVertex2iv (unit_left);
+            int unit_right[2] = {(int)(i*unit_length), hh};
+            glVertex2iv (unit_right);
+            
+            glColor3fv  (temp_color);
+            int unit2_left[2] = {(int)((i+1)*unit_length), 0};
+            glVertex2iv (unit2_left);
+            int unit2_right[2] = {(int)((i+1)*unit_length), hh};
+            glVertex2iv (unit2_right);
         }
+    }
     glEnd ();
 }
 
 
-void set_color_bar(){
-    draw_color_bar();
-}
-
-void Color_Bar(void)
-{
-    if (draw_smoke){
-        printf("---");
-        set_color_bar();
-    }else{
-    int window_w = 250;
-    int window_h = 10;
- 
-    // Set up coordinate system to position color bar near bottom of window.
- 
-    glMatrixMode (GL_PROJECTION);
-    glLoadIdentity ();
-    glOrtho (0.0f, window_w, window_h, 0.0f, 0.0f, 1.0f);
-    glMatrixMode (GL_MODELVIEW);
-    glLoadIdentity ();
- 
+void draw_color_bar_scalar(){
+    int i;
+//    float band_w = 400;
+    
+    float unit_length = winWidth/(NLEVELS + 1);
+    float unit_color = (s_max - s_min)/(NLEVELS);
     // Use Quad strips to make color bar.
-    set_color_bar();
-    // Label ends of color bar.
- 
-    glColor3f (1, 1, 1);
-    }
-//    bitmap_output (-5, 7, 0, "Min_H", GLUT_BITMAP_9_BY_15);
-//    bitmap_output (95, 7, 0, "Max_H", GLUT_BITMAP_9_BY_15);
-}
-
-
-//visualize: This is the main visualization function
-void visualize(void)
-{
-	int        i, j, idx, idx0, idx1, idx2, idx3; double px0,py0,px1,py1,px2,py2,px3,py3;
-
-        std::string smin,smin2,smin3,smax ;
+    glBegin (GL_QUAD_STRIP);
+    if (scalar_col==COLOR_BLACKWHITE)
+    {
+        float temp_color[3] = {0.0f, 0.0f, 0.0f};
+        glColor3fv (temp_color);
+        int unit_left[2] = {winWidth-hh, 0};
+        glVertex2iv (unit_left);
+        int unit_right[2] = {winWidth, 0};
+        glVertex2iv (unit_right);
         
-	fftw_real  wn = (fftw_real)winWidth / (fftw_real)(DIM + 1);   // Grid cell width
-	fftw_real  hn = (fftw_real)winHeight / (fftw_real)(DIM + 1);  // Grid cell heigh
-
-	if (draw_smoke)
-	{
+        float temp_color2[3] = {s_max, s_max, s_max};
+        glColor3fv  (temp_color2);
+        int unit_left2[2] = {winWidth-hh, (int)winWidth};
+        glVertex2iv (unit_left2);
+        int unit_right2[2] = {winWidth, (int)winWidth};
+        glVertex2iv (unit_right2);
+    }else{
+        for (i = 0; i <= NLEVELS; i++)  {
+            //float temp_color[3] = {start[0] + i*unit_color[0], start[1] + i*unit_color[1], start[2] + i*unit_color[2]};
+            float temp_color[3] = {calculate_color_R(s_min + i*unit_color), calculate_color_G(s_min + i*unit_color), calculate_color_B(s_min + i*unit_color)};
             
-	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-	glBegin(GL_TRIANGLES);
-	for (j = 0; j < DIM - 1; j++)			//draw smoke
-	{
-		for (i = 0; i < DIM - 1; i++)
-		{
-			px0  = wn + (fftw_real)i * wn;
-			py0  = hn + (fftw_real)j * hn;
-			idx0 = (j * DIM) + i;
-
-			px1  = wn + (fftw_real)i * wn;
-			py1  = hn + (fftw_real)(j + 1) * hn;
-			idx1 = ((j + 1) * DIM) + i;
-
-			px2  = wn + (fftw_real)(i + 1) * wn;
-			py2  = hn + (fftw_real)(j + 1) * hn;
-			idx2 = ((j + 1) * DIM) + (i + 1);
-
-			px3  = wn + (fftw_real)(i + 1) * wn;
-			py3  = hn + (fftw_real)j * hn;
-			idx3 = (j * DIM) + (i + 1);
-            set_colormap(rho[idx0]);    glVertex2f(px0, py0);
-            set_colormap(rho[idx1]);    glVertex2f(px1, py1);
-            set_colormap(rho[idx2]);    glVertex2f(px2, py2);
-            
-            set_colormap(rho[idx0]);    glVertex2f(px0, py0);
-            set_colormap(rho[idx2]);    glVertex2f(px2, py2);
-            set_colormap(rho[idx3]);    glVertex2f(px3, py3);
-            
-		}
-                
-	}
-	glEnd();
-	}
-
-	if (draw_vecs)
-	{
-	  glBegin(GL_LINES);				//draw velocities
-	  for (i = 0; i < DIM; i++)
-	    for (j = 0; j < DIM; j++)
-	    {
-		  idx = (j * DIM) + i;
-            float val_mag = 0;
-            if (scalr_data== VELO){
-//                direction_to_color(vx[idx],vy[idx],color_dir);
-                val_mag = sqrt(vx[idx] * vx[idx] + vy[idx] * vy[idx]);
-                glVertex2f(wn + (fftw_real)i * wn, hn + (fftw_real)j * hn);
-                glVertex2f((wn + (fftw_real)i * wn) + vec_scale * vx[idx], (hn + (fftw_real)j * hn) + vec_scale * vy[idx]);
-            }else if (scalr_data== FORCE){
-//                direction_to_color(fx[idx],fy[idx],color_dir);
-                val_mag = sqrt(fx[idx] * fx[idx] + fy[idx] * fy[idx]);
-                glVertex2f(wn + (fftw_real)i * wn, hn + (fftw_real)j * hn);
-                glVertex2f((wn + (fftw_real)i * wn) + vec_scale * fx[idx], (hn + (fftw_real)j * hn) + vec_scale * fy[idx]);
+            if(scalar_col==COLOR_RAINBOW)
+            {
+                float s_value = s_min + i*unit_color;
+                temp_color[0] = max(0.0f, -((s_value-0.9)*(s_value-0.9))+1);
+                temp_color[1] = max(0.0f, -((s_value-1.5)*(s_value-1.5))+1);
+                temp_color[2] = 0.0f;
             }
             
-            set_colormap(val_mag);
-	    }
-	  glEnd();
-	}
-    
-    set_color_bar();
-    
+            else if(scalar_col==COLOR_BANDS)
+            {
+                temp_color[0] = calculate_color_R(s_min + i*unit_color);
+                temp_color[1] = calculate_color_G(s_min + i*unit_color);
+                temp_color[2] = calculate_color_B(s_min + i*unit_color);
+                
+            }
+            
+            Rgb color = {temp_color[0], temp_color[1], temp_color[2]};
+            Rgb new_color = TransformHS(color, hue, saturation);
+            temp_color[0] = new_color.r;
+            temp_color[1] = new_color.g;
+            temp_color[2] = new_color.b;
+            
+            glColor3fv  (temp_color);
+            int unit_left[2] = {winWidth-hh, (int)(i*unit_length)};
+            glVertex2iv (unit_left);
+            int unit_right[2] = {winWidth, (int)(i*unit_length)};
+            glVertex2iv (unit_right);
+            
+            glColor3fv  (temp_color);
+            int unit2_left[2] = {winWidth - hh, (int)((i+1)*unit_length)};
+            glVertex2iv (unit2_left);
+            int unit2_right[2] = {winWidth, (int)((i+1)*unit_length)};
+            glVertex2iv (unit2_right);
+        }
+    }
+    glEnd ();
+}
+
+void dispBarValScala(){
+    std::string smin,smin2,smin3,smax ;
     float draw_max = 0.5;
     float draw_min = 0.0;
     if(scalr_data == RHO){
@@ -639,9 +632,368 @@ void visualize(void)
     displayText(winWidth - 2*hh,0,1,0,0, smin.c_str());
 }
 
+void dispBarValVector(){
+    std::string smin,smin2,smin3,smax ;
+    float draw_max = 0.5;
+    float draw_min = 0.0;
+    if(scalr_data == RHO){
+        draw_max = clamp_rho_max;
+        draw_min = clamp_rho_min;
+    }else if (scalr_data== VELO){
+        draw_max = clamp_v_max;
+        draw_min = clamp_v_min;
+    }else if (scalr_data == FORCE){
+        draw_max = clamp_f_max;
+        draw_min = clamp_f_min;
+    }
+    
+    float interval = (draw_max-draw_min)/3;
+    smin = std::to_string(draw_min);
+    smin2 = std::to_string(draw_min + interval);
+    smin3 = std::to_string(draw_min + interval*2);
+    smax = std::to_string(draw_max);
+    
+    displayText(0,hh,1,0,0, smax.c_str());
+    displayText(winWidth*1/3,hh,1,0,0, smin3.c_str());
+    displayText(winWidth*2/3,hh,1,0,0, smin2.c_str());
+    displayText(winWidth-2*hh,hh,1,0,0, smin.c_str());
+}
+
+//visualize: This is the main visualization function
+
+
+float angle2DVector(float vx1, float vx2, float vy1, float vy2){
+    float vec_vx = vx1 - vx2;
+    float vec_vy = vy1 - vy2;
+    float vec_len = sqrt(vec_vx * vec_vx + vec_vy * vec_vy);
+    float norm_vx = vec_vx/vec_len;
+    float norm_vy = vec_vy/vec_len;
+    float angle = atan2 (norm_vx,-norm_vy) * (180 / M_PI);
+    return angle;
+}
+
+
+float len2DVector(float vx1, float vx2, float vy1, float vy2){
+    float vec_vx = vx1 - vx2;
+    float vec_vy = vy1 - vy2;
+    float vec_len = sqrt(vec_vx * vec_vx + vec_vy * vec_vy);
+    return vec_len;
+}
+
+float len3DVector(float vx1, float vx2, float vy1, float vy2, float z){
+    float vec_vx = vx1 - vx2;
+    float vec_vy = vy1 - vy2;
+    float vec_len = sqrt(vec_vx * vec_vx + vec_vy * vec_vy + z*z);
+    return vec_len;
+}
+
+
+void drawArrow(float vx1, float vx2, float vy1, float vy2,float vy){
+    // draw an arrow the size of a cell, scale according to vector length
+    float angle = angle2DVector(vx1, vx2, vy1, vy2);
+    
+    set_colormap_scalar(vy);
+    glPushMatrix();
+    glTranslatef(vx1,vy1, 0);
+    glRotated(angle,0,0,1);
+
+    float len = len2DVector(vx1, vx2, vy1, vy2);
+    GLUquadricObj *quadObj;
+    int D = 5;
+    
+    glTranslatef(0,0,len-4*D);
+
+    quadObj = gluNewQuadric ();
+    gluQuadricDrawStyle (quadObj, GLU_FILL);
+    gluQuadricNormals (quadObj, GLU_SMOOTH);
+    gluCylinder(quadObj, 2*D, 0.0, 4*D, 32, 1);
+    gluDeleteQuadric(quadObj);
+    
+    quadObj = gluNewQuadric ();
+    gluQuadricDrawStyle (quadObj, GLU_FILL);
+    gluQuadricNormals (quadObj, GLU_SMOOTH);
+    gluDisk(quadObj, 0.0, 2*D, 32, 1);
+    gluDeleteQuadric(quadObj);
+    
+    glTranslatef(0,0,-len+4*D);
+    
+    quadObj = gluNewQuadric ();
+    gluQuadricDrawStyle (quadObj, GLU_FILL);
+    gluQuadricNormals (quadObj, GLU_SMOOTH);
+    gluCylinder(quadObj, D, D, len-4*D, 32, 1);
+    gluDeleteQuadric(quadObj);
+    
+    quadObj = gluNewQuadric ();
+    gluQuadricDrawStyle (quadObj, GLU_FILL);
+    gluQuadricNormals (quadObj, GLU_SMOOTH);
+    gluDisk(quadObj, 0.0, D, 32, 1);
+    gluDeleteQuadric(quadObj);
+    
+    glPopMatrix ();
+    glLoadIdentity(); // needed to stop the rotating, otherwise rotates the entire drawing
+}
+
+#define RADPERDEG 0.0174533
+void draw3D(float vx1, float vx2, float vy1, float vy2, float vy){
+    float x = vx1 - vx2;
+    float y = vy1 - vy2;
+    float z = 8;
+    float len = len3DVector(vx1, vx2, vy1, vy2, z);
+    
+    set_colormap_scalar(vy);
+    glPushMatrix();
+    glTranslatef(vx1,vy1,2);
+    
+    if((x!=0.)||(y!=0.)) {
+        glRotated(atan2(y,x)/RADPERDEG,0.,0.,1.);
+        glRotated(atan2(sqrt(x*x+y*y),z)/RADPERDEG,0.,-1.,0.);
+    } else if (z<0){
+        glRotated(180,1.,0.,0.);
+    }
+    
+//    float angle = angle2DVector(vx1, vx2, vy1, vy2);
+//    glRotated(angle,0,0,1);
+    
+    GLUquadricObj *quadObj;
+    int D = 5;
+    
+    glTranslatef(0,0,len-4*D);
+    
+    quadObj = gluNewQuadric ();
+    gluQuadricDrawStyle (quadObj, GLU_FILL);
+    gluQuadricNormals (quadObj, GLU_SMOOTH);
+    gluCylinder(quadObj, 2*D, 0.0, 4*len, 16, 1);
+    gluDeleteQuadric(quadObj);
+    
+    quadObj = gluNewQuadric ();
+    gluQuadricDrawStyle (quadObj, GLU_FILL);
+    gluQuadricNormals (quadObj, GLU_SMOOTH);
+    gluDisk(quadObj, 0.0, 2*D, 16, 1);
+    gluDeleteQuadric(quadObj);
+    
+    glTranslatef(0,0,-len+4*D);
+
+    quadObj = gluNewQuadric ();
+    gluQuadricDrawStyle (quadObj, GLU_FILL);
+    gluQuadricNormals (quadObj, GLU_SMOOTH);
+    gluCylinder(quadObj, D, 0, len-4*len, 16, 1);
+    gluDeleteQuadric(quadObj);
+
+    quadObj = gluNewQuadric ();
+    gluQuadricDrawStyle (quadObj, GLU_FILL);
+    gluQuadricNormals (quadObj, GLU_SMOOTH);
+    gluDisk(quadObj, 0.0, D, 16, 1);
+    gluDeleteQuadric(quadObj);
+    
+    glPopMatrix ();
+    glLoadIdentity(); // needed to stop the rotating, otherwise rotates the entire drawing
+    
+}
+
+
+void drawAxes(float vx1, float vx2, float vy1, float vy2,float vy)
+{
+//    float len = len2DVector(vx1, vx2, vy1, vy2);
+    float len = 10;
+    glPushMatrix();
+    glTranslatef(len,0,0);
+//    drawArrow(vx1, vx2, vy1, vy2, vy);
+    draw3D(vx1, vx2, vy1, vy2, vy);
+    glPopMatrix();
+    
+    glPushMatrix();
+    glTranslatef(0,len,0);
+//    drawArrow(vx1, vx2, vy1, vy2, vy);
+    draw3D(vx1, vx2, vy1, vy2, vy);
+    glPopMatrix();
+    
+    glPushMatrix();
+    glTranslatef(0,0,len);
+//    drawArrow(vx1, vx2, vy1, vy2, vy);
+    draw3D(vx1, vx2, vy1, vy2, vy);
+    glPopMatrix();
+}
+
+
+
+void visualize(void)
+{
+	int        i, j, idx, idx0, idx1, idx2, idx3; double px0,py0,px1,py1,px2,py2,px3,py3;
+
+	fftw_real  wn = (fftw_real)(winWidth-20) / (fftw_real)(DIM + 1);   // Grid cell width
+	fftw_real  hn = (fftw_real)winHeight / (fftw_real)(DIM + 1);  // Grid cell heigh
+
+	if (draw_smoke){
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        glBegin(GL_TRIANGLES);
+	for (j = 0; j < DIM - 1; j++)			//draw smoke
+	{
+		for (i = 0; i < DIM - 1; i++)
+		{
+			px0  = wn + (fftw_real)i * wn;
+			py0  = hn + (fftw_real)j * hn;
+			idx0 = (j * DIM) + i;
+
+			px1  = wn + (fftw_real)i * wn;
+			py1  = hn + (fftw_real)(j + 1) * hn;
+			idx1 = ((j + 1) * DIM) + i;
+
+			px2  = wn + (fftw_real)(i + 1) * wn;
+			py2  = hn + (fftw_real)(j + 1) * hn;
+			idx2 = ((j + 1) * DIM) + (i + 1);
+
+			px3  = wn + (fftw_real)(i + 1) * wn;
+			py3  = hn + (fftw_real)j * hn;
+			idx3 = (j * DIM) + (i + 1);
+            
+            if(scalr_data == RHO){
+                set_colormap(rho[idx0]);    glVertex2f(px0, py0);
+                set_colormap(rho[idx1]);    glVertex2f(px1, py1);
+                set_colormap(rho[idx2]);    glVertex2f(px2, py2);
+                
+                set_colormap(rho[idx0]);    glVertex2f(px0, py0);
+                set_colormap(rho[idx2]);    glVertex2f(px2, py2);
+                set_colormap(rho[idx3]);    glVertex2f(px3, py3);
+            }
+            else if (scalr_data == VELO){
+                float vel0 = 100*sqrt(vx[idx0]*vx[idx0]+vy[idx0]*vy[idx0]);
+                float vel1 = 100*sqrt(vx[idx1]*vx[idx1]+vy[idx1]*vy[idx1]);
+                float vel2 = 100*sqrt(vx[idx2]*vx[idx2]+vy[idx2]*vy[idx2]);
+                float vel3 = 100*sqrt(vx[idx3]*vx[idx3]+vy[idx3]*vy[idx3]);
+                
+                set_colormap(vel0);    glVertex2f(px0, py0);
+                set_colormap(vel1);    glVertex2f(px1, py1);
+                set_colormap(vel2);    glVertex2f(px2, py2);
+                
+                set_colormap(vel0);    glVertex2f(px0, py0);
+                set_colormap(vel2);    glVertex2f(px2, py2);
+                set_colormap(vel3);    glVertex2f(px3, py3);
+            }
+            else if (scalr_data == FORCE){
+                float force0 = 100*sqrt(fx[idx0]*fx[idx0]+fy[idx0]*fy[idx0]);
+                float force1 = 100*sqrt(fx[idx1]*fx[idx1]+fy[idx1]*fy[idx1]);
+                float force2 = 100*sqrt(fx[idx2]*fx[idx2]+fy[idx2]*fy[idx2]);
+                float force3 = 100*sqrt(fx[idx3]*fx[idx3]+fy[idx3]*fy[idx3]);
+                
+                set_colormap(force0);    glVertex2f(px0, py0);
+                set_colormap(force1);    glVertex2f(px1, py1);
+                set_colormap(force2);    glVertex2f(px2, py2);
+                
+                set_colormap(force0);    glVertex2f(px0, py0);
+                set_colormap(force2);    glVertex2f(px2, py2);
+                set_colormap(force3);    glVertex2f(px3, py3);
+            }
+		}
+                
+	}
+        glEnd();
+        draw_color_bar_scalar();
+        dispBarValScala();
+	}
+
+	if (draw_vecs)
+	{
+	  glBegin(GL_LINES);				//draw velocities
+	  for (i = 0; i < DIM; i++)
+	    for (j = 0; j < DIM; j++)
+	    {
+		  idx = (j * DIM) + i;
+            float val_mag = 0;
+            
+            if (scalr_data== VELO){
+                if (glyphs == "hedgehogs") {
+                    if (j % 5==0 && i % 5==0){
+                        val_mag = sqrt(vx[idx] * vx[idx] + vy[idx] * vy[idx]);
+                        set_colormap_scalar(100*val_mag);
+                        glVertex2f(wn + (fftw_real)i * wn, hn + (fftw_real)j * hn);
+                        glVertex2f((wn + (fftw_real)i * wn) + vec_scale * vx[idx], (hn + (fftw_real)j * hn) + vec_scale * vy[idx]);
+                    }
+                }
+                else if (glyphs == "arrow"){
+                    if (j % 8==0 && i % 8==0){
+                        float x1 = wn+(fftw_real)i * wn;
+                        float y1 = hn+(fftw_real)j * hn;
+                        float x2 = (wn + (fftw_real)i * wn) + vec_scale * vx[idx];
+                        float y2 = (hn + (fftw_real)j * hn) + vec_scale * vy[idx];
+                        float len = len2DVector(x1, x2, y1, y2);
+//                        drawArrow(x1, x2, y1, y2, len/15);
+//                        drawAxes(x1, x2, y1, y2, len/15);
+                        draw3D(x1, x2, y1, y2, len/10);
+                        
+                    }
+                }
+                else if (glyphs == "triangle"){
+                    if (j % 5==0 && i % 5==0){
+                        val_mag = sqrt(vx[idx] * vx[idx] + vy[idx] * vy[idx]);
+                        glBegin(GL_TRIANGLE_STRIP);
+                        set_colormap_scalar(100*val_mag);
+                        glVertex2f((fftw_real)i * wn, (fftw_real)j * hn);
+                        glVertex2f(wn + (fftw_real)i * wn, hn + (fftw_real)j * hn);
+                        glVertex2f((wn + (fftw_real)i * wn) + vec_scale * vx[idx], (hn + (fftw_real)j * hn) + vec_scale * vy[idx]);
+                        glEnd();
+                        glFlush();
+                    }
+                }
+                else if (glyphs == "3D"){
+                    
+                }
+            }else if (scalr_data== FORCE){
+                if (glyphs == "hedgehogs") {
+                        val_mag = sqrt(fx[idx] * fx[idx] + fy[idx] * fy[idx]);
+                        set_colormap_scalar(100*val_mag);
+                        glVertex2f(wn + (fftw_real)i * wn, hn + (fftw_real)j * hn);
+                        glVertex2f((wn + (fftw_real)i * wn) + vec_scale * fx[idx], (hn + (fftw_real)j * hn) + vec_scale * fy[idx]);
+                
+                }
+                else if (glyphs == "arrow"){
+                    if (j % 5==0 && i % 5==0){
+                        float x1 = wn+(fftw_real)i * wn;
+                        float y1 = hn+(fftw_real)j * hn;
+                        float x2 = (wn + (fftw_real)i * wn) + vec_scale * fx[idx];
+                        float y2 = (hn + (fftw_real)j * hn) + vec_scale * fy[idx];
+                        float len = len2DVector(x1, x2, y1, y2);
+                        drawArrow(x1, x2, y1, y2, len/15);
+//                        drawAxes(x1, x2, y1, y2, len/15);
+                    }
+                }
+                else if (glyphs == "triangle"){
+                    glBegin(GL_TRIANGLE_STRIP);
+                    val_mag = sqrt(fx[idx] * fx[idx] + fy[idx] * fy[idx]);
+                    set_colormap_scalar(100*val_mag);
+                    glVertex2f((fftw_real)i * wn,(fftw_real)j * hn);
+                    glVertex2f(wn + (fftw_real)i * wn, hn + (fftw_real)j * hn);
+                    glVertex2f((wn + (fftw_real)i * wn) + vec_scale * fx[idx], (hn + (fftw_real)j * hn) + vec_scale * fy[idx]);
+                    glEnd();
+                    
+                }
+                else if (glyphs == "3D"){
+                    
+                }
+                
+            }
+	    }
+        glEnd();
+        draw_color_bar_vector();
+        dispBarValVector();
+	}
+   
+}
+
 
 //------ INTERACTION CODE STARTS HERE -----------------------------------------------------------------
 
+/***************************************** myGlutIdle() ***********/
+
+void myGlutIdle( void )
+{
+    /* According to the GLUT specification, the current window is
+     undefined during an idle callback.  So we need to explicitly change
+     it if necessary */
+    if ( glutGetWindow() != main_window )
+        glutSetWindow(main_window);
+    
+    glutPostRedisplay();
+}
 
 
 //display: Handle window redrawing events. Simply delegates to visualize().
@@ -651,21 +1003,10 @@ void display(void)
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 	visualize();
-//        Color_Bar();
 	glFlush();
 	glutSwapBuffers();
 }
 
-//display: Handle window redrawing events. Simply delegates to visualize().
-void display2(void)
-{
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-//	glMatrixMode(GL_MODELVIEW);
-//	glLoadIdentity();
-        Color_Bar();
-	glFlush();
-	glutSwapBuffers();
-}
 
 //reshape: Handle window resizing (reshaping) events
 void reshape(int w, int h)
@@ -675,6 +1016,7 @@ void reshape(int w, int h)
 	glLoadIdentity();
 	gluOrtho2D(0.0, (GLdouble)w, 0.0, (GLdouble)h);
 	winWidth = w; winHeight = h;
+    glutPostRedisplay();
 }
 
 //keyboard: Handle key presses
@@ -682,29 +1024,30 @@ void keyboard(unsigned char key, int x, int y)
 {
 	switch (key)
 	{
-      case 'r': clamp_rho_max = rho_max; clamp_f_max = f_max; clamp_v_max = v_max; clamp_rho_min = rho_min;
+        case 'r': clamp_rho_max = rho_max; clamp_f_max = f_max; clamp_v_max = v_max; clamp_rho_min = rho_min;
             clamp_v_min = v_min; clamp_f_min = f_min; break;
-	  case 't': dt -= 0.001; break;
-	  case 'T': dt += 0.001; break;
-	  case 'c': color_dir = 1 - color_dir; break;
-	  case 'S': vec_scale *= 1.2; break;
-	  case 's': vec_scale *= 0.8; break;
-	  case 'V': visc *= 5; break;
-	  case 'v': visc *= 0.2; break;
-	  case 'x': draw_smoke = 1 - draw_smoke;
-		    if (draw_smoke==0) draw_vecs = 1; break;
-	  case 'y': draw_vecs = 1 - draw_vecs;
-		    if (draw_vecs==0) draw_smoke = 1; break;
-	  case 'm': scalar_col++; if (scalar_col>COLOR_BANDS) scalar_col=COLOR_BLACKWHITE; break;
+        case 't': dt -= 0.001; break;
+        case 'T': dt += 0.001; break;
+        case 'c': color_dir = 1 - color_dir; break;
+        case 'S': vec_scale *= 1.2; break;
+        case 's': vec_scale *= 0.8; break;
+        case 'o': glyphs = "hedgehogs"; break;
+        case 'p': glyphs = "arrow"; break;
+        case 'l': glyphs = "triangle"; break;
+        case 'V': visc *= 5; break;
+        case 'v': visc *= 0.2; break;
+        case 'x': draw_smoke = 1 - draw_smoke;break;
+            
+        case 'y': draw_vecs = 1 - draw_vecs;break;
+            
+        case 'm': scalar_col++; if (scalar_col>COLOR_BANDS) scalar_col=COLOR_BLACKWHITE; break;
+        case 'k': vector_col++; if (vector_col>COLOR_BANDS) vector_col=COLOR_BLACKWHITE; break;
+            
+            
 	  case 'n': scalr_data++; if (scalr_data>FORCE) scalr_data=RHO;
-            if (scalr_data == RHO){
-                draw_smoke = 1;
-                draw_vecs = 0;
-            }else{
-                draw_smoke = 0;
-                draw_vecs = 1;
-            }
-            break;
+            if(draw_vecs && (scalr_data>FORCE || scalr_data == RHO)){
+                scalr_data = VELO;
+            } break;
 	  case 'a': frozen = 1-frozen; break;
 	  case 'q': exit(0);
           case '1':
@@ -792,7 +1135,9 @@ void drag(int mx, int my)
 	fy[Y * DIM + X] += dy;
 	rho[Y * DIM + X] = 10.0f;
 	lmx = mx; lmy = my;
+    glutPostRedisplay();
 }
+
 
 
 //main: The main program
@@ -822,10 +1167,19 @@ int main(int argc, char **argv)
 	glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
 //        glutInitWindowPosition(100, 100);
 	glutInitWindowSize(400,400);
-	glutCreateWindow("Real-time smoke simulation and visualization");
+    
+    GLUI *glui = GLUI_Master.create_glui( "Real-time smoke simulation and visualization" );
+    main_window = glui -> get_glut_window_id();
+    
+    glui = GLUI_Master.create_glui_subwindow( main_window, GLUI_SUBWINDOW_LEFT );
+    
+    
+    
+//    main_window = glutCreateWindow("Real-time smoke simulation and visualization");
 	glutDisplayFunc(display);
 	glutReshapeFunc(reshape);
-	glutIdleFunc(do_one_simulation_step);
+    GLUI_Master.set_glutIdleFunc(do_one_simulation_step);
+//    glutIdleFunc(do_one_simulation_step);
 	glutKeyboardFunc(keyboard);
 	glutMotionFunc(drag);
 	init_simulation(DIM);	//initialize the simulation data structures
@@ -835,8 +1189,22 @@ int main(int argc, char **argv)
 //        glutCreateWindow("value");
 //        glutDisplayFunc(display2);
 //	glutIdleFunc(do_one_simulation_step2);
-        
-        
+    
+//    GLUI *glui = GLUI_Master.create_glui( "GLUI" );
+    GLUI_Panel      *obj_panel;
+    obj_panel = new GLUI_Rollout(glui, "Properties", true );
+    GLUI_Spinner *spinner = new GLUI_Spinner(obj_panel, "NLEVELS:", &NLEVELS);
+    spinner->set_int_limits( 3, 256);
+    spinner->set_alignment( GLUI_ALIGN_LEFT );
+    
+    
+    GLUI_Spinner *spinner2 = new GLUI_Spinner(obj_panel, "NLEVELS:", &NLEVELS);
+    spinner2->set_int_limits( 3, 256);
+    spinner2->set_alignment( GLUI_ALIGN_LEFT );
+    
+    
+    glui->set_main_gfx_window( main_window );
+    
 	glutMainLoop();			//calls do_one_simulation_step, keyboard, display, drag, reshape
 	return 0;
 }
