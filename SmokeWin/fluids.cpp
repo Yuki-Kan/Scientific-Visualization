@@ -1,27 +1,26 @@
-// Usage: Drag with the mouse to add smoke to the fluid. This will also move a "rotor" that disturbs 
+// Usage: Drag with the mouse to add smoke to the fluid. This will also move a "rotor" that disturbs
 //        the velocity field at the mouse location. Press the indicated keys to change options
-//-------------------------------------------------------------------------------------------------- 
+//--------------------------------------------------------------------------------------------------
 
-#include <rfftw.h>              //the numerical simulation FFTW library
-#include <GL/glut.h>            //the GLUT graphics library
+
+#include "rfftw.h"              //the numerical simulation FFTW library
 #include <stdio.h>              //for printing the help text
-//  Include windows library in order to use the Sleep function
-#include <windows.h>
-
-//  For sqrt
-#include <math.h>
-
-//  Include GLUI, GLUT, OpenGL, and GLU libraries
-#include <glui.h>
+#include <math.h>               //for various math functions
+#include <GL/glut.h>            //the GLUT graphics library
+#include <GL/glui.h>
+#include <string>
+#include "transform.h"
+#include <algorithm>
 
 //--- SIMULATION PARAMETERS ------------------------------------------------------------------------
-const int DIM = 50;				//size of simulation grid
+const float M_PI = 3.14159;
+const int DIM = 100;			//size of simulation grid
 double dt = 0.4;				//simulation time step
 float visc = 0.001;				//fluid viscosity
 fftw_real *vx, *vy;             //(vx,vy)   = velocity field at the current moment
 fftw_real *vx0, *vy0;           //(vx0,vy0) = velocity field at the previous moment
-fftw_real *fx, *fy;	            //(fx,fy)   = user-controlled simulation forces, steered with the mouse 
-fftw_real *rho, *rho0;			//smoke density at the current (rho) and previous (rho0) moment 
+fftw_real *fx, *fy;	            //(fx,fy)   = user-controlled simulation forces, steered with the mouse
+fftw_real *rho, *rho0;			//smoke density at the current (rho) and previous (rho0) moment
 rfftwnd_plan plan_rc, plan_cr;  //simulation domain discretization
 
 
@@ -35,117 +34,67 @@ const int COLOR_BLACKWHITE=0;   //different types of color mapping: black-and-wh
 const int COLOR_RAINBOW=1;
 const int COLOR_BANDS=2;
 int   scalar_col = 0;           //method for scalar coloring
+const int RHO=0;   //different datasets of color mapping: rho, velocity, force
+const int VELO=1;
+const int FORCE=2;
+int scalr_data = 0;
 int   frozen = 0;               //toggles on/off the animation
-								//  variable representing the window title
-char *window_title = "Real-time smoke simulation and visualization";
+int   NLEVELS = 2;
 
-//  The id of the main window
-GLuint main_window;
 
 //---customize parameters
-float col[6][3] = { { 1,0,0 },  // red
-{ 0,1,0 },  // green
-{ 0,0,1 },  // blue
-{ 1,1,0 },  // yellow
-{ 0,1,1 },  // cyan
-{ 1,0,1 } }; // purple;
-const int hh = 15;
-int bot[6][2] = { { 0,0 },{ 50,0 },{ 100,0 },{ 150,0 },{ 200,0 },{ 250,0 } },
-top[6][2] = { { 0,hh },{ 50,hh },{ 100,hh },{ 150,hh },{ 200,hh },{ 250,hh } };
+float s_min = 0;
+float s_max = 1;
+float rho_min = 0;
+float rho_max = 0;
+float v_min = 0;
+float v_max = 0;
+float f_min = 0;
+float f_max = 0;
 
+float clamp_rho_min = 0;
+float clamp_rho_max = 0;
+float clamp_v_min = 0;
+float clamp_v_max = 0;
+float clamp_f_min = 0;
+float clamp_f_max = 0;
 
-//*************************************************************************
-//  GLUI Declarations
-//*************************************************************************
+float hue = 0;
+float saturation = 1;
 
-//  pointer to the GLUI window
-GLUI * glui_window;
-
-//  Declare live variables (related to GLUI)
-int wireframe = 1;			//  Related to Wireframe Check Box
-int draw = 1;				//  Related to Draw Check Box
-int listbox_item_id = 12;	//  Id of the selected item in the list box
-int radiogroup_item_id = 0; //  Id of the selcted radio button
-float rotation_matrix[16]	//  Rotation Matrix Live Variable Array
-= { 1.0, 0.0, 0.0, 0.0,
-0.0, 1.0, 0.0, 0.0,
-0.0, 0.0, 1.0, 0.0,
-0.0, 0.0, 0.0, 1.0 };
-float translate_xy[2]		//  Translation XY Live Variable
-= { 0, 0 };
-float translate_z = 0;		//  Translation Z Live Variable
-float scale = 1;			//  Spinner Scale Live Variable
-
-							// an array of RGB components
-float color[] = { 1.0, 1.0, 1.0 };
-
-//  Set up the GLUI window and its components
-void setupGLUI();
-
-//  Idle callack function
-void idle();
-
-//  Declare callbacks related to GLUI
-void glui_callback(int arg);
-
-//  Declare the IDs of controls generating callbacks
-enum
-{
-	COLOR_LISTBOX = 0,
-	OBJECTYPE_RADIOGROUP,
-	TRANSLATION_XY,
-	TRANSLATION_Z,
-	ROTATION,
-	SCALE_SPINNER,
-	QUIT_BUTTON
-};
-
-//  The different GLUT shapes
-enum GLUT_SHAPES
-{
-	GLUT_WIRE_CUBE = 0,
-	GLUT_SOLID_CUBE,
-	GLUT_WIRE_SPHERE,
-	GLUT_SOLID_SPHERE,
-	GLUT_WIRE_CONE,
-	GLUT_SOLID_CONE,
-	GLUT_WIRE_TORUS,
-	GLUT_SOLID_TORUS,
-	GLUT_WIRE_DODECAHEDRON,
-	GLUT_SOLID_DODECAHEDRON,
-	GLUT_WIRE_OCTAHEDRON,
-	GLUT_SOLID_OCTAHEDRON,
-	GLUT_WIRE_TETRAHEDRON,
-	GLUT_SOLID_TETRAHEDRON,
-	GLUT_WIRE_ICOSAHEDRON,
-	GLUT_SOLID_ICOSAHEDRON,
-	GLUT_WIRE_TEAPOT,
-	GLUT_SOLID_TEAPOT
-};
+float col[6][3] ={{1,0,0},  // red
+	                      {0,1,0},  // green
+	                      {0,0,1},  // blue
+	                      {1,1,0},  // yellow
+	                      {0,1,1},  // cyan
+	                      {1,0,1}}; // purple;
+const int hh = 20;
+//int bot[6][2] = {{0,0}, {50,0}, {50,0}, {100,0}, {100,0}, {250,0}},
+//	       top[6][2] = {{0,hh}, {50,hh}, {50,hh}, {100,hh}, {100,hh}, {250,hh}};
 
 
 //------ SIMULATION CODE STARTS HERE -----------------------------------------------------------------
 
-//init_simulation: Initialize simulation data structures as a function of the grid size 'n'. 
+// init_simulation: Initialize simulation data structures as a function of the grid size 'n'.
 //                 Although the simulation takes place on a 2D grid, we allocate all data structures as 1D arrays,
 //                 for compatibility with the FFTW numerical library.
-void init_simulation(int n)				
+void init_simulation(int n)
 {
-	int i; size_t dim; 
-	
+	int i; size_t dim;
+
 	dim     = n * 2*(n/2+1)*sizeof(fftw_real);        //Allocate data structures
-	vx       = (fftw_real*) malloc(dim); 
+	vx       = (fftw_real*) malloc(dim);
 	vy       = (fftw_real*) malloc(dim);
-	vx0      = (fftw_real*) malloc(dim); 
+	vx0      = (fftw_real*) malloc(dim);
 	vy0      = (fftw_real*) malloc(dim);
 	dim     = n * n * sizeof(fftw_real);
-	fx      = (fftw_real*) malloc(dim); 
+	fx      = (fftw_real*) malloc(dim);
 	fy      = (fftw_real*) malloc(dim);
-	rho     = (fftw_real*) malloc(dim); 
+	rho     = (fftw_real*) malloc(dim);
 	rho0    = (fftw_real*) malloc(dim);
 	plan_rc = rfftw2d_create_plan(n, n, FFTW_REAL_TO_COMPLEX, FFTW_IN_PLACE);
 	plan_cr = rfftw2d_create_plan(n, n, FFTW_COMPLEX_TO_REAL, FFTW_IN_PLACE);
-	
+
 	for (i = 0; i < n * n; i++)                      //Initialize data structures to 0
 	{ vx[i] = vy[i] = vx0[i] = vy0[i] = fx[i] = fy[i] = rho[i] = rho0[i] = 0.0f; }
 }
@@ -159,22 +108,28 @@ void FFT(int direction,void* vx)
 	else             rfftwnd_one_complex_to_real(plan_cr,(fftw_complex*)vx,(fftw_real*)vx);
 }
 
-int clamp(float x) 
+int clamp(float x)
 { return ((x)>=0.0?((int)(x)):(-((int)(1-(x))))); }
 
+float max(float x, float y)
+{ return x > y ? x : y; }
+
 //solve: Solve (compute) one step of the fluid flow simulation
-void solve(int n, fftw_real* vx, fftw_real* vy, fftw_real* vx0, fftw_real* vy0, fftw_real visc, fftw_real dt) 
+void solve(int n, fftw_real* vx, fftw_real* vy, fftw_real* vx0, fftw_real* vy0, fftw_real visc, fftw_real dt)
 {
 	fftw_real x, y, x0, y0, f, r, U[2], V[2], s, t;
 	int i, j, i0, j0, i1, j1;
 
-	for (i=0;i<n*n;i++) 
-	{ vx[i] += dt*vx0[i]; vx0[i] = vx[i]; vy[i] += dt*vy0[i]; vy0[i] = vy[i]; }    
+	for (i=0;i<n*n;i++)
+	{ vx[i] += dt*vx0[i]; 
+          vx0[i] = vx[i]; 
+          vy[i] += dt*vy0[i]; 
+          vy0[i] = vy[i]; }
 
-	for ( x=0.5f/n,i=0 ; i<n ; i++,x+=1.0f/n ) 
-	   for ( y=0.5f/n,j=0 ; j<n ; j++,y+=1.0f/n ) 
+	for ( x=0.5f/n,i=0 ; i<n ; i++,x+=1.0f/n )
+	   for ( y=0.5f/n,j=0 ; j<n ; j++,y+=1.0f/n )
 	   {
-	      x0 = n*(x-dt*vx0[i+n*j])-0.5f; 
+	      x0 = n*(x-dt*vx0[i+n*j])-0.5f;
 	      y0 = n*(y-dt*vy0[i+n*j])-0.5f;
 	      i0 = clamp(x0); s = x0-i0;
 	      i0 = (n+(i0%n))%n;
@@ -184,19 +139,19 @@ void solve(int n, fftw_real* vx, fftw_real* vy, fftw_real* vx0, fftw_real* vy0, 
 	      j1 = (j0+1)%n;
 	      vx[i+n*j] = (1-s)*((1-t)*vx0[i0+n*j0]+t*vx0[i0+n*j1])+s*((1-t)*vx0[i1+n*j0]+t*vx0[i1+n*j1]);
 	      vy[i+n*j] = (1-s)*((1-t)*vy0[i0+n*j0]+t*vy0[i0+n*j1])+s*((1-t)*vy0[i1+n*j0]+t*vy0[i1+n*j1]);
-	   }     
-	
+	   }
+
 	for(i=0; i<n; i++)
-	  for(j=0; j<n; j++) 
+	  for(j=0; j<n; j++)
 	  {  vx0[i+(n+2)*j] = vx[i+n*j]; vy0[i+(n+2)*j] = vy[i+n*j]; }
 
 	FFT(1,vx0);
 	FFT(1,vy0);
 
-	for (i=0;i<=n;i+=2) 
+	for (i=0;i<=n;i+=2)
 	{
 	   x = 0.5f*i;
-	   for (j=0;j<n;j++) 
+	   for (j=0;j<n;j++)
 	   {
 	      y = j<=n/2 ? (fftw_real)j : (fftw_real)j-n;
 	      r = x*x+y*y;
@@ -212,27 +167,40 @@ void solve(int n, fftw_real* vx, fftw_real* vy, fftw_real* vx0, fftw_real* vy0, 
 	   }
 	}
 
-	FFT(-1,vx0); 
+	FFT(-1,vx0);
 	FFT(-1,vy0);
 
 	f = 1.0/(n*n);
  	for (i=0;i<n;i++)
-	   for (j=0;j<n;j++) 
-	   { vx[i+n*j] = f*vx0[i+(n+2)*j]; vy[i+n*j] = f*vy0[i+(n+2)*j]; }
-} 
+	   for (j=0;j<n;j++)
+	   {
+           vx[i+n*j] = f*vx0[i+(n+2)*j];
+           vy[i+n*j] = f*vy0[i+(n+2)*j];
+           
+           float v_magnitude;
+           v_magnitude = sqrt(vx[i+n*j] * vx[i+n*j] + vy[i+n*j] * vy[i+n*j]);
+           
+           if (v_magnitude > v_max){
+               v_max = v_magnitude;
+           }
+           else if (v_magnitude <= v_min){
+               v_min = v_magnitude;
+           }
+       }
+}
 
 
 // diffuse_matter: This function diffuses matter that has been placed in the velocity field. It's almost identical to the
 // velocity diffusion step in the function above. The input matter densities are in rho0 and the result is written into rho.
-void diffuse_matter(int n, fftw_real *vx, fftw_real *vy, fftw_real *rho, fftw_real *rho0, fftw_real dt) 
+void diffuse_matter(int n, fftw_real *vx, fftw_real *vy, fftw_real *rho, fftw_real *rho0, fftw_real dt)
 {
 	fftw_real x, y, x0, y0, s, t;
 	int i, j, i0, j0, i1, j1;
 
 	for ( x=0.5f/n,i=0 ; i<n ; i++,x+=1.0f/n )
-		for ( y=0.5f/n,j=0 ; j<n ; j++,y+=1.0f/n ) 
+		for ( y=0.5f/n,j=0 ; j<n ; j++,y+=1.0f/n )
 		{
-			x0 = n*(x-dt*vx[i+n*j])-0.5f; 
+			x0 = n*(x-dt*vx[i+n*j])-0.5f;
 			y0 = n*(y-dt*vy[i+n*j])-0.5f;
 			i0 = clamp(x0);
 			s = x0-i0;
@@ -243,31 +211,47 @@ void diffuse_matter(int n, fftw_real *vx, fftw_real *vy, fftw_real *rho, fftw_re
 			j0 = (n+(j0%n))%n;
 			j1 = (j0+1)%n;
 			rho[i+n*j] = (1-s)*((1-t)*rho0[i0+n*j0]+t*rho0[i0+n*j1])+s*((1-t)*rho0[i1+n*j0]+t*rho0[i1+n*j1]);
-		}    
+            float rho_value = rho[i+n*j];
+            if (rho_value > rho_max){
+                rho_max = rho_value;
+            }
+            else if (rho_value <= rho_min){
+                rho_min = rho_value;
+            }
+        
+        }
 }
 
-//set_forces: copy user-controlled forces to the force vectors that are sent to the solver. 
+//set_forces: copy user-controlled forces to the force vectors that are sent to the solver.
 //            Also dampen forces and matter density to get a stable simulation.
-void set_forces(void) 
+void set_forces(void)
 {
 	int i;
-	for (i = 0; i < DIM * DIM; i++) 
+	for (i = 0; i < DIM * DIM; i++)
 	{
         rho0[i]  = 0.995 * rho[i];
-        fx[i] *= 0.85; 
+        fx[i] *= 0.85;
         fy[i] *= 0.85;
-        vx0[i]    = fx[i]; 
+        vx0[i]    = fx[i];
         vy0[i]    = fy[i];
+        float f_magnitude;
+        f_magnitude = sqrt(fx[i] * fx[i] + fy[i] * fy[i]);
+        if (f_magnitude > f_max){
+            f_max = f_magnitude;
+        }
+        else if (f_magnitude <= f_min){
+            f_min = f_magnitude;
+        }
 	}
 }
 
 
 //do_one_simulation_step: Do one complete cycle of the simulation:
-//      - set_forces:       
+//      - set_forces:
 //      - solve:            read forces from the user
 //      - diffuse_matter:   compute a new set of velocities
 //      - gluPostRedisplay: draw a new visualization frame
-void do_one_simulation_step(void) 
+void do_one_simulation_step(void)
 {
 	if (!frozen)
 	{
@@ -278,49 +262,125 @@ void do_one_simulation_step(void)
 	}
 }
 
+void do_one_simulation_step2(void)
+{
+	if (!frozen)
+	{
+	  glutPostRedisplay();
+	}
+}
+
 
 //------ VISUALIZATION CODE STARTS HERE -----------------------------------------------------------------
 
+float test = 0;
 
 //rainbow: Implements a color palette, mapping the scalar 'value' to a rainbow color RGB
-void rainbow(float value,float* R,float* G,float* B)
-{                          
-   const float dx=0.8; 
-   if (value<0) value=0; if (value>1) value=1;
-   value = (6-2*dx)*value+dx;
-   *R = max(0.0,(3-fabs(value-4)-fabs(value-5))/2);
-   *G = max(0.0,(4-fabs(value-2)-fabs(value-4))/2);
-   *B = max(0.0,(3-fabs(value-1)-fabs(value-2))/2);
+void heatmap(float s_value,float* R,float* G,float* B)
+{   
+//   const float dx=0.8f;
+   s_value = (s_value < s_min)? s_min : ( s_value > s_max)? s_max : s_value;
+//   s_value = (6-2*dx)*s_value+dx;
+    
+    *R = max(0.0f, -((s_value-0.9)*(s_value-0.9))+1);
+    *G = max(0.0f, -((s_value-1.5)*(s_value-1.5))+1);// max(0.0f, -(value-1)*-(value-1)+1);
+    *B = 0;
 }
 
-void self_rainbow(float value, float* R, float* G, float* B)
+
+void self_rainbow(float s_value,float* R,float* G,float* B)
 {
-	const float dx = 0.8f;
-	if (value<0) value = 0; if (value>1) value = 1;
-	value = (6 - 2 * dx)*value + dx;
-
-	*R = max(0.0f, (3 - (float)fabs(value - 4) - (float)fabs(value - 5)) / 2);
-	*G = max(0.0f, (4 - (float)fabs(value - 2) - (float)fabs(value - 4)) / 2);
-	*B = (0.0f, 0.0f);
+   const float dx=0.8f;
+   s_value = (s_value < s_min)? s_min : ( s_value > s_max)? s_max : s_value;    //clamp scalar value in [min, max]
+   s_value = (6-2*dx)*s_value+dx;
+   
+   *R = max(0.0f,(3-(float)fabs(s_value-4)-(float)fabs(s_value-5))/2);
+   *G = max(0.0f,(4-(float)fabs(s_value-2)-(float)fabs(s_value-4))/2);
+   *B = max(0.0f,(3-(float)fabs(s_value-1)-(float)fabs(s_value-2))/2);
 }
+
+float clamp_v(float v_value, float clamp_max, float clamp_min){
+    if (v_value > clamp_max){
+        v_value = clamp_max;
+    }else if (v_value < clamp_min){
+        v_value = clamp_min;
+    }
+    return v_value;
+}
+
+float scale(float valueIn){
+//    float limitMax;
+//    float limitMin;
+    float baseMax;
+    float baseMin;
+    if(scalr_data == RHO){
+//        limitMax = rho_max;
+//        limitMin = rho_min;
+        baseMax = clamp_rho_max;
+        baseMin = clamp_rho_min;
+    }
+    else if (scalr_data== VELO){
+//        limitMax = v_max;
+//        limitMin = v_min;
+        baseMax = clamp_v_max;
+        baseMin = clamp_v_min;
+    }else if (scalr_data== FORCE){
+//        limitMax = f_max;
+//        limitMin = f_min;
+        baseMax = clamp_f_max;
+        baseMin = clamp_f_min;
+    }
+    valueIn = clamp_v(valueIn, baseMax, baseMin);
+    return (valueIn - baseMin) / (baseMax - baseMin);
+}
+
+// ======= hue and saturation
+Rgb TransformHS(const Rgb &in, float H, float S)
+{
+    if(H==0)H=1;
+    float SU = S*cos(H*M_PI/180);
+    float SW = S*sin(H*M_PI/180);
+    
+    Rgb ret;
+    ret.r = (.299+.701*SU+.168*SW)*in.r
+    + (.587-.587*SU+.330*SW)*in.g
+    + (.114-.114*SU-.497*SW)*in.b;
+    ret.g = (.299-.299*SU-.328*SW)*in.r
+    + (.587+.413*SU+.035*SW)*in.g
+    + (.114-.114*SU+.292*SW)*in.b;
+    ret.b = (.299-.3*SU+1.25*SW)*in.r
+    + (.587-.588*SU-1.05*SW)*in.g
+    + (.114+.886*SU-.203*SW)*in.b;
+    return ret;
+}
+
 
 //set_colormap: Sets three different types of colormaps
-void set_colormap(float vy)
+void set_colormap(float v_value)
 {
-   float R,G,B; 
-
-   if (scalar_col==COLOR_BLACKWHITE)
-       R = G = B = vy;
-   else if (scalar_col==COLOR_RAINBOW)
-	   self_rainbow(vy,&R,&G,&B);
-   else if (scalar_col==COLOR_BANDS)
-       {  
-          const int NLEVELS = 7;
-          vy *= NLEVELS; vy = (int)(vy); vy/= NLEVELS; 
-	      rainbow(vy,&R,&G,&B);   
-	   }
+   float R,G,B;
+    v_value = scale(v_value);
    
-   glColor3f(R,G,B);
+   if (scalar_col==COLOR_BLACKWHITE) //0
+   {
+       R = G = B = v_value;
+   }
+   else if (scalar_col==COLOR_RAINBOW) //1
+   {
+       v_value *= NLEVELS; v_value = (int)(v_value); v_value/= NLEVELS;
+       heatmap(v_value,&R,&G,&B);
+   }
+   else if (scalar_col==COLOR_BANDS) //2
+    {
+
+        v_value *= NLEVELS; v_value = (int)(v_value); v_value/= NLEVELS;
+        self_rainbow(v_value,&R,&G,&B);
+    }
+
+    Rgb color = {R,G,B};
+    Rgb new_color = TransformHS(color, hue, saturation);
+    
+    glColor3f(new_color.r,new_color.g,new_color.b);
 }
 
 
@@ -341,187 +401,291 @@ void direction_to_color(float x, float y, int method)
 	  b = f + 2 * .66667;
 	  if(b > 2) b -= 2;
 	  if(b > 1) b = 2 - b;
-	} 
+	}
 	else
 	{ r = g = b = 1; }
 	glColor3f(r,g,b);
 }
 
 
-void displayText(float x, float y, int r, int g, int b, const char *string) {
-	int j = strlen(string);
-
-	glColor3f(r, g, b);
-	glRasterPos2f(x, y);
-	for (int i = 0; i < j; i++) {
-		glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, string[i]);
+void displayText( float x, float y, int r, int g, int b, const char *string ) {
+	int j = strlen( string );
+ 
+    
+	glColor3f( r, g, b );
+	glRasterPos2f( x, y );
+	for( int i = 0; i < j; i++ ) {
+		glutBitmapCharacter( GLUT_BITMAP_TIMES_ROMAN_24, string[i] );
 	}
 }
+
 
 
 //--------------------------------  Color_Bar  --------------------------------- 
 
-void draw_color_bar(float temp[6][3]) {
-	int i;
 
-	// Use Quad strips to make color bar.
-	glBegin(GL_QUAD_STRIP);
-	for (i = 0; i <= 5; i++) {
-		glColor3fv(temp[i]);
-		glVertex2iv(bot[i]);
-		glVertex2iv(top[i]);
-	}
-	glEnd();
+float calculate_color_R(float val){
+    float dx = 0.8f;
+    float value_ = (6-2*dx)* val + dx;
+    return max(0.0f,(3-(float)fabs(value_-4)-(float)fabs(value_-5))/2);
 }
 
-void set_color_bar() {
-	int i;
-	if (scalar_col == COLOR_BLACKWHITE)
-	{
-		float temp_array[6][3] = { { 1,1,1 },  // red
-		{ 0.5,0.5,0.5 },  // green     
-		{ 0.5,0.5,0.5 },  // green
-		{ 0.5,0.5,0.5 },  // green
-		{ 0.5,0.5,0.5 },  // green
-						  //                                  {0,0,1},  // blue
-						  //                                  {1,1,0},  // yellow
-						  //                                  {0,1,1},  // cyan
-		{ 0,0,0 } }; // purple
-		draw_color_bar(temp_array);
-	}
+float calculate_color_G(float val){
+    float dx = 0.8f;
+    float value_ = (6-2*dx)* val + dx;
+    return max(0.0f,(4-(float)fabs(value_-2)-(float)fabs(value_-4))/2);
+}
 
-	else if (scalar_col == COLOR_RAINBOW)
-	{
-		// self-rainbow: R and G
-		float temp_array[6][3] = { { 1,0,0 },  // red
-		{ 0.5,0.5,0 },  // green
-		{ 0.5,0.5,0 },  // blue
-		{ 0.5,0.5,0 },  // green
-		{ 0.5,0.5,0 },  // cyan
-		{ 0,1,0 } }; // purple
-		draw_color_bar(temp_array);
-	}
+float calculate_color_B(float val){
+    float dx = 0.8f;
+    float value_ = (6-2*dx)* val + dx;
+    return max(0.0f,(3-(float)fabs(value_-1)-(float)fabs(value_-2))/2);
+}
 
-	else if (scalar_col == COLOR_BANDS)
-	{
-		float temp_array[6][3] = { { 1,0,0 },  // red
-		{ 0,1,0 },  // green
-		{ 0,0,1 },  // blue
-		{ 1,1,0 },  // yellow
-		{ 0,1,1 },  // cyan
-		{ 1,0,1 } }; // purple
-		draw_color_bar(temp_array);
+void draw_color_bar(){
+    int i;
+    float band_w = 400;
+    
+    float unit_length = band_w/(NLEVELS + 1);
+    float unit_color = (s_max - s_min)/(NLEVELS);
+    // Use Quad strips to make color bar.
+    glBegin (GL_QUAD_STRIP);
+     if (scalar_col==COLOR_BLACKWHITE)
+        {
+            float temp_color[3] = {0.0f, 0.0f, 0.0f};
+            glColor3fv (temp_color);
+            int unit_left[2] = {winWidth-hh, 0};
+            glVertex2iv (unit_left);
+            int unit_right[2] = {winWidth, 0};
+            glVertex2iv (unit_right);
+            
+            float temp_color2[3] = {s_max, s_max, s_max};
+            glColor3fv  (temp_color2);
+            int unit_left2[2] = {winWidth-hh, (int)band_w};
+            glVertex2iv (unit_left2);
+            int unit_right2[2] = {winWidth, (int)band_w};
+            glVertex2iv (unit_right2);
+        }else{
+            for (i = 0; i <= NLEVELS; i++)  {
+               //float temp_color[3] = {start[0] + i*unit_color[0], start[1] + i*unit_color[1], start[2] + i*unit_color[2]};
+                float temp_color[3] = {calculate_color_R(s_min + i*unit_color), calculate_color_G(s_min + i*unit_color), calculate_color_B(s_min + i*unit_color)};
 
-	}
+               if(scalar_col==COLOR_RAINBOW)
+            {
+                float s_value = s_min + i*unit_color;
+                temp_color[0] = max(0.0f, -((s_value-0.9)*(s_value-0.9))+1);
+                temp_color[1] = max(0.0f, -((s_value-1.5)*(s_value-1.5))+1);
+                temp_color[2] = 0.0f;
+            }
+
+              else if(scalar_col==COLOR_BANDS)
+            {
+               temp_color[0] = calculate_color_R(s_min + i*unit_color);
+               temp_color[1] = calculate_color_G(s_min + i*unit_color);
+               temp_color[2] = calculate_color_B(s_min + i*unit_color);
+
+            }
+
+            Rgb color = {temp_color[0], temp_color[1], temp_color[2]};
+            Rgb new_color = TransformHS(color, hue, saturation);
+                temp_color[0] = new_color.r;
+                temp_color[1] = new_color.g;
+                temp_color[2] = new_color.b;
+                
+               glColor3fv  (temp_color);
+               int unit_left[2] = {winWidth-hh, (int)(i*unit_length)};
+               glVertex2iv (unit_left);
+               int unit_right[2] = {winWidth, (int)(i*unit_length)};
+               glVertex2iv (unit_right);
+
+               glColor3fv  (temp_color);
+               int unit2_left[2] = {winWidth - hh, (int)((i+1)*unit_length)};
+               glVertex2iv (unit2_left);
+               int unit2_right[2] = {winWidth, (int)((i+1)*unit_length)};
+               glVertex2iv (unit2_right);
+            }
+        }
+    glEnd ();
+}
+
+
+void set_color_bar(){
+    draw_color_bar();
 }
 
 void Color_Bar(void)
 {
-	if (draw_smoke) {
-		printf("---");
-		set_color_bar();
-	}
-	else {
-		int window_w = 250;
-		int window_h = 10;
-
-		// Set up coordinate system to position color bar near bottom of window.
-
-		glMatrixMode(GL_PROJECTION);
-		glLoadIdentity();
-		glOrtho(0.0f, window_w, window_h, 0.0f, 0.0f, 1.0f);
-		glMatrixMode(GL_MODELVIEW);
-		glLoadIdentity();
-
-		// Use Quad strips to make color bar.
-		set_color_bar();
-
-		// Label ends of color bar.
-
-		glColor3f(1, 1, 1);
-	}
-	//    bitmap_output (-5, 7, 0, "Min_H", GLUT_BITMAP_9_BY_15);
-	//    bitmap_output (95, 7, 0, "Max_H", GLUT_BITMAP_9_BY_15);
+    if (draw_smoke){
+        printf("---");
+        set_color_bar();
+    }else{
+    int window_w = 250;
+    int window_h = 10;
+ 
+    // Set up coordinate system to position color bar near bottom of window.
+ 
+    glMatrixMode (GL_PROJECTION);
+    glLoadIdentity ();
+    glOrtho (0.0f, window_w, window_h, 0.0f, 0.0f, 1.0f);
+    glMatrixMode (GL_MODELVIEW);
+    glLoadIdentity ();
+ 
+    // Use Quad strips to make color bar.
+    set_color_bar();
+    // Label ends of color bar.
+ 
+    glColor3f (1, 1, 1);
+    }
+//    bitmap_output (-5, 7, 0, "Min_H", GLUT_BITMAP_9_BY_15);
+//    bitmap_output (95, 7, 0, "Max_H", GLUT_BITMAP_9_BY_15);
 }
+
 
 //visualize: This is the main visualization function
 void visualize(void)
 {
-	int        i, j, idx;
+	int        i, j, idx, idx0, idx1, idx2, idx3; double px0,py0,px1,py1,px2,py2,px3,py3;
+
+        std::string smin,smin2,smin3,smax ;
+        
 	fftw_real  wn = (fftw_real)winWidth / (fftw_real)(DIM + 1);   // Grid cell width
 	fftw_real  hn = (fftw_real)winHeight / (fftw_real)(DIM + 1);  // Grid cell heigh
 
 	if (draw_smoke)
-	{	
-		int idx0, idx1, idx2, idx3;
-		double px0, py0, px1, py1, px2, py2, px3, py3;
-		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-		glBegin(GL_TRIANGLES);
-		for (j = 0; j < DIM - 1; j++)            //draw smoke
+	{
+            
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	glBegin(GL_TRIANGLES);
+	for (j = 0; j < DIM - 1; j++)			//draw smoke
+	{
+		for (i = 0; i < DIM - 1; i++)
 		{
-			for (i = 0; i < DIM - 1; i++)
-			{
-				px0 = wn + (fftw_real)i * wn;
-				py0 = hn + (fftw_real)j * hn;
-				idx0 = (j * DIM) + i;
+			px0  = wn + (fftw_real)i * wn;
+			py0  = hn + (fftw_real)j * hn;
+			idx0 = (j * DIM) + i;
 
+			px1  = wn + (fftw_real)i * wn;
+			py1  = hn + (fftw_real)(j + 1) * hn;
+			idx1 = ((j + 1) * DIM) + i;
 
-				px1 = wn + (fftw_real)i * wn;
-				py1 = hn + (fftw_real)(j + 1) * hn;
-				idx1 = ((j + 1) * DIM) + i;
+			px2  = wn + (fftw_real)(i + 1) * wn;
+			py2  = hn + (fftw_real)(j + 1) * hn;
+			idx2 = ((j + 1) * DIM) + (i + 1);
 
-
-				px2 = wn + (fftw_real)(i + 1) * wn;
-				py2 = hn + (fftw_real)(j + 1) * hn;
-				idx2 = ((j + 1) * DIM) + (i + 1);
-
-
-				px3 = wn + (fftw_real)(i + 1) * wn;
-				py3 = hn + (fftw_real)j * hn;
-				idx3 = (j * DIM) + (i + 1);
-
-
-				set_colormap(rho[idx0]);    glVertex2f(px0, py0);
-				set_colormap(rho[idx1]);    glVertex2f(px1, py1);
-				set_colormap(rho[idx2]);    glVertex2f(px2, py2);
-
-
-				set_colormap(rho[idx0]);    glVertex2f(px0, py0);
-				set_colormap(rho[idx2]);    glVertex2f(px2, py2);
-				set_colormap(rho[idx3]);    glVertex2f(px3, py3);
-			}
+			px3  = wn + (fftw_real)(i + 1) * wn;
+			py3  = hn + (fftw_real)j * hn;
+			idx3 = (j * DIM) + (i + 1);
+            set_colormap(rho[idx0]);    glVertex2f(px0, py0);
+            set_colormap(rho[idx1]);    glVertex2f(px1, py1);
+            set_colormap(rho[idx2]);    glVertex2f(px2, py2);
+            
+            set_colormap(rho[idx0]);    glVertex2f(px0, py0);
+            set_colormap(rho[idx2]);    glVertex2f(px2, py2);
+            set_colormap(rho[idx3]);    glVertex2f(px3, py3);
+            
 		}
-		glEnd();
-		set_color_bar();
-		displayText(0, 0, 1, 0, 0, "20");
+                
+	}
+	glEnd();
 	}
 
+
+	float ng = 100;
+	int size = (int)((float)DIM / sqrt(ng));
+	int sizeX = (int)((float)winHeight / sqrt(ng));	
+	int sizeY = (int)((float)winWidth / sqrt(ng));
 	if (draw_vecs)
 	{
-		glBegin(GL_LINES);				//draw velocities
-		for (i = 0; i < DIM; i++)
-			for (j = 0; j < DIM; j++)
-			{
-				idx = (j * DIM) + i;
-				direction_to_color(vx[idx],vy[idx],color_dir);
-				glVertex2f(wn + (fftw_real)i * wn, hn + (fftw_real)j * hn);
-				glVertex2f((wn + (fftw_real)i * wn) + vec_scale * vx[idx], (hn + (fftw_real)j * hn) + vec_scale * vy[idx]);
-			}
-		glEnd();
+	  glBegin(GL_LINES);				//draw velocities
+	  for (i = 0; i < DIM; i++)
+	    for (j = 0; j < DIM; j++)
+	    {
+		  idx = (j * DIM) + i;
+            float val_mag = 0;
+			
+			if (scalr_data == VELO) {
+				//                direction_to_color(vx[idx],vy[idx],color_dir);
+				val_mag = sqrt(vx[idx] * vx[idx] + vy[idx] * vy[idx]);
+				float arrow_len = val_mag / (clamp_v_max - clamp_v_min);
+				float axis_len = arrow_len / 2;
+				float arrow1 = (wn + (fftw_real)i * wn) - axis_len * vx[idx] * vec_scale*sizeX;
+				float arrow2 = (hn + (fftw_real)j * hn) - axis_len * vy[idx] * vec_scale*sizeY;
+				float arrow3 = (wn + (fftw_real)i * wn) + axis_len * vx[idx] * vec_scale*sizeX;
+				float arrow4 = (hn + (fftw_real)j * hn) + axis_len * vy[idx] * vec_scale*sizeY;
+
+				float diff_x = arrow3 - arrow1;
+				float diff_y = arrow4 - arrow2;
+				if (abs(diff_x) > sizeX / 2) {
+					diff_x = diff_x * ((sizeX / 2) / abs(diff_x));
+					float new_mid = (arrow3 + arrow1) / 2;
+					arrow3 = new_mid + diff_x / 2;
+					arrow1 = new_mid - diff_x / 2;
+				}
+				if (abs(diff_y) > sizeY / 2) {
+					diff_y = diff_y * ((sizeY / 2) / abs(diff_y));
+					float new_mid = (arrow4 + arrow2) / 2;
+					arrow4 = new_mid + diff_y / 2;
+					arrow2 = new_mid - diff_y / 2;
+				}
+
+				if (i%size == 0 && j%size == 0) {
+					glVertex2f(arrow1, arrow2);
+					glVertex2f(arrow3, arrow4);
+				}
+
+            }else if (scalr_data== FORCE){
+//                direction_to_color(fx[idx],fy[idx],color_dir);
+                val_mag = sqrt(fx[idx] * fx[idx] + fy[idx] * fy[idx]);
+                glVertex2f(wn + (fftw_real)i * wn, hn + (fftw_real)j * hn);
+                glVertex2f((wn + (fftw_real)i * wn) + vec_scale * fx[idx], (hn + (fftw_real)j * hn) + vec_scale * fy[idx]);
+            }
+            
+            set_colormap(val_mag);
+	    }
+	  glEnd();
 	}
+    
+    set_color_bar();
+    
+    float draw_max = 0.5;
+    float draw_min = 0.0;
+    if(scalr_data == RHO){
+        draw_max = clamp_rho_max;
+        draw_min = clamp_rho_min;
+    }else if (scalr_data== VELO){
+        draw_max = clamp_v_max;
+        draw_min = clamp_v_min;
+    }else if (scalr_data == FORCE){
+        draw_max = clamp_f_max;
+        draw_min = clamp_f_min;
+    }
+    
+    float interval = (draw_max-draw_min)/3;
+    smin = std::to_string(draw_min);
+    smin2 = std::to_string(draw_min + interval);
+    smin3 = std::to_string(draw_min + interval*2);
+    smax = std::to_string(draw_max);
+    
+    displayText(winWidth - 2*hh,(winHeight-hh),1,0,0, smax.c_str());
+    displayText(winWidth - 2*hh,(winHeight-hh)*2/3,1,0,0, smin3.c_str());
+    displayText(winWidth - 2*hh,(winHeight-hh)*1/3,1,0,0, smin2.c_str());
+    displayText(winWidth - 2*hh,0,1,0,0, smin.c_str());
 }
 
 
 //------ INTERACTION CODE STARTS HERE -----------------------------------------------------------------
 
+
+
 //display: Handle window redrawing events. Simply delegates to visualize().
-void display(void) 
+void display(void)
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-	visualize(); 
-	glFlush(); 
+	visualize();
+//        Color_Bar();
+	glFlush();
 	glutSwapBuffers();
 }
 
@@ -529,42 +693,108 @@ void display(void)
 void display2(void)
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	//	glMatrixMode(GL_MODELVIEW);
-	//	glLoadIdentity();
-	Color_Bar();
+//	glMatrixMode(GL_MODELVIEW);
+//	glLoadIdentity();
+        Color_Bar();
 	glFlush();
 	glutSwapBuffers();
 }
 
 //reshape: Handle window resizing (reshaping) events
-void reshape(int w, int h) 
+void reshape(int w, int h)
 {
  	glViewport(0.0f, 0.0f, (GLfloat)w, (GLfloat)h);
-	glMatrixMode(GL_PROJECTION);  
+	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	gluOrtho2D(0.0, (GLdouble)w, 0.0, (GLdouble)h);
 	winWidth = w; winHeight = h;
 }
 
 //keyboard: Handle key presses
-void keyboard(unsigned char key, int x, int y) 
+void keyboard(unsigned char key, int x, int y)
 {
-	switch (key) 
+	switch (key)
 	{
+      case 'r': clamp_rho_max = rho_max; clamp_f_max = f_max; clamp_v_max = v_max; clamp_rho_min = rho_min;
+            clamp_v_min = v_min; clamp_f_min = f_min; break;
 	  case 't': dt -= 0.001; break;
 	  case 'T': dt += 0.001; break;
 	  case 'c': color_dir = 1 - color_dir; break;
 	  case 'S': vec_scale *= 1.2; break;
 	  case 's': vec_scale *= 0.8; break;
 	  case 'V': visc *= 5; break;
-	  case 'vy': visc *= 0.2; break;
-	  case 'x': draw_smoke = 1 - draw_smoke; 
+	  case 'v': visc *= 0.2; break;
+	  case 'x': draw_smoke = 1 - draw_smoke;
 		    if (draw_smoke==0) draw_vecs = 1; break;
-	  case 'y': draw_vecs = 1 - draw_vecs; 
+	  case 'y': draw_vecs = 1 - draw_vecs;
 		    if (draw_vecs==0) draw_smoke = 1; break;
 	  case 'm': scalar_col++; if (scalar_col>COLOR_BANDS) scalar_col=COLOR_BLACKWHITE; break;
+	  case 'n': scalr_data++; if (scalr_data>FORCE) scalr_data=RHO;
+            if (scalr_data == RHO){
+                draw_smoke = 1;
+                draw_vecs = 0;
+            }else{
+                draw_smoke = 0;
+                draw_vecs = 1;
+            }
+            break;
 	  case 'a': frozen = 1-frozen; break;
 	  case 'q': exit(0);
+          case '1':
+        {
+            if(scalr_data == RHO){
+                clamp_rho_min -= 0.5; if (clamp_rho_min < rho_min) clamp_rho_min =rho_min; break;
+            }
+            else if (scalr_data== VELO){
+                clamp_v_min -= 0.5; if (clamp_v_min < v_min) clamp_v_min = v_min; break;
+            }else if (scalr_data== FORCE){
+                clamp_f_min -= 0.5; if (clamp_f_min < f_min) clamp_f_min = f_min; break;
+            }
+        }
+            
+        case '2':
+        {
+            if(scalr_data == RHO){
+                clamp_rho_min += 0.5; if (clamp_rho_min >= clamp_rho_max) clamp_rho_min = clamp_rho_max - 0.5; break;
+            }
+            else if (scalr_data== VELO){
+                clamp_v_min += 0.5; if (clamp_v_min >= clamp_v_max) clamp_v_min = clamp_v_max - 0.5; break;
+            }else if (scalr_data== FORCE){
+                clamp_f_min += 0.5; if (clamp_f_min >= clamp_f_max) clamp_f_min = clamp_f_max - 0.5; break;
+            }
+        }
+            
+        case '3':
+        {
+            if(scalr_data == RHO){
+                clamp_rho_max -= 0.5; if (clamp_rho_min >= clamp_rho_max) clamp_rho_max = clamp_rho_min + 0.5; break;
+            }
+            else if (scalr_data== VELO){
+                clamp_v_max -= 0.5; if (clamp_v_min >= clamp_v_max) clamp_v_max = clamp_v_min + 0.5; break;
+            }else if (scalr_data== FORCE){
+                clamp_f_max -= 0.5; if (clamp_f_min >= clamp_f_max) clamp_f_max = clamp_f_min + 0.5; break;
+            }
+        }
+            
+        case '4':
+        {
+            if(scalr_data == RHO){
+                clamp_rho_max += 0.5; if (rho_max < clamp_rho_max) clamp_rho_max =rho_max; break;
+            }
+            else if (scalr_data== VELO){
+                clamp_v_max += 0.5; if (v_max < clamp_v_max) clamp_v_max = v_max; break;
+            }else if (scalr_data== FORCE){
+                clamp_f_max += 0.5; if (f_max < clamp_f_max) clamp_f_max = f_max; break;
+            }
+        }
+         
+          case '6': NLEVELS +=1;  if (NLEVELS >= 256) NLEVELS = 256; break;
+          case '5': NLEVELS -=1;  if (NLEVELS <= 2) NLEVELS = 2; break;
+            
+        case '7': hue -=0.1;  if (hue <= 0) hue = 0; break;
+        case '8': hue +=0.1;  if (hue >= 1) hue = 1; break;
+        case '9': saturation -=0.1;  if (saturation <= 0) saturation = 0; break;
+        case '0': saturation +=0.1;  if (saturation >= 1.5) saturation = 1.5; printf(std::to_string(saturation).c_str()); break;
 	}
 }
 
@@ -572,12 +802,12 @@ void keyboard(unsigned char key, int x, int y)
 
 // drag: When the user drags with the mouse, add a force that corresponds to the direction of the mouse
 //       cursor movement. Also inject some new matter into the field at the mouse location.
-void drag(int mx, int my) 
+void drag(int mx, int my)
 {
 	int xi,yi,X,Y; double  dx, dy, len;
 	static int lmx=0,lmy=0;				//remembers last mouse location
 
-	// Compute the array index that corresponds to the cursor location 
+	// Compute the array index that corresponds to the cursor location
 	xi = (int)clamp((double)(DIM + 1) * ((double)mx / (double)winWidth));
 	yi = (int)clamp((double)(DIM + 1) * ((double)(winHeight - my) / (double)winHeight));
 
@@ -586,309 +816,20 @@ void drag(int mx, int my)
 	if (X > (DIM - 1))  X = DIM - 1; if (Y > (DIM - 1))  Y = DIM - 1;
 	if (X < 0) X = 0; if (Y < 0) Y = 0;
 
-	// Add force at the cursor location 
+	// Add force at the cursor location
 	my = winHeight - my;
 	dx = mx - lmx; dy = my - lmy;
 	len = sqrt(dx * dx + dy * dy);
 	if (len != 0.0) {  dx *= 0.1 / len; dy *= 0.1 / len; }
-	fx[Y * DIM + X] += dx; 
+	fx[Y * DIM + X] += dx;
 	fy[Y * DIM + X] += dy;
 	rho[Y * DIM + X] = 10.0f;
 	lmx = mx; lmy = my;
 }
 
-//*************************************************************************
-//  GLUI Functions.
-//*************************************************************************
-
-//-------------------------------------------------------------------------
-//  Setup GLUI stuff.
-//-------------------------------------------------------------------------
-void setupGLUI()
-{
-	int window_x = 400;
-	int window_y = 400;
-
-	//  Set idle function
-	GLUI_Master.set_glutIdleFunc(idle);
-
-	//  Create GLUI window
-	glui_window = GLUI_Master.create_glui("Options", 0, window_x - 235, window_y);
-
-	//---------------------------------------------------------------------
-	// 'Object Properties' Panel
-	//---------------------------------------------------------------------
-
-	//  Add the 'Object Properties' Panel to the GLUI window
-	GLUI_Panel *op_panel = glui_window->add_panel("Object Properties");
-
-	//  Add the Draw Check box to the 'Object Properties' Panel
-	glui_window->add_checkbox_to_panel(op_panel, "Draw", &draw);
-
-	//  Add the Wireframe Check box to the 'Object Properties' Panel
-	glui_window->add_checkbox_to_panel(op_panel, "Wireframe", &wireframe);
-
-	//  Add a separator
-	glui_window->add_separator_to_panel(op_panel);
-
-	//  Add the Color listbox to the 'Object Properties' Panel
-	GLUI_Listbox *color_listbox = glui_window->add_listbox_to_panel(op_panel,
-		"Color", &listbox_item_id, COLOR_LISTBOX, glui_callback);
-
-	//  Add the items to the listbox
-	color_listbox->add_item(1, "Black");
-	color_listbox->add_item(2, "Blue");
-	color_listbox->add_item(3, "Cyan");
-	color_listbox->add_item(4, "Dark Grey");
-	color_listbox->add_item(5, "Grey");
-	color_listbox->add_item(6, "Green");
-	color_listbox->add_item(7, "Light Grey");
-	color_listbox->add_item(8, "Magenta");
-	color_listbox->add_item(9, "Orange");
-	color_listbox->add_item(10, "Pink");
-	color_listbox->add_item(11, "Red");
-	color_listbox->add_item(12, "White");
-	color_listbox->add_item(13, "Yellow");
-
-	//  Select the White Color by default
-	color_listbox->set_int_val(12);
-
-	//---------------------------------------------------------------------
-	// 'Object Type' Panel
-	//---------------------------------------------------------------------
-
-	//  Add the 'Object Type' Panel to the GLUI window
-	GLUI_Rollout *ot_rollout = glui_window->add_rollout("Object Type");
-
-	//  Create radio button group
-	GLUI_RadioGroup *ot_group = glui_window->add_radiogroup_to_panel
-	(ot_rollout, &radiogroup_item_id, OBJECTYPE_RADIOGROUP, glui_callback);
-
-	//  Add the radio buttons to the radio group
-	glui_window->add_radiobutton_to_group(ot_group, "Cube");
-	glui_window->add_radiobutton_to_group(ot_group, "Sphere");
-	glui_window->add_radiobutton_to_group(ot_group, "Cone");
-	glui_window->add_radiobutton_to_group(ot_group, "Torus");
-	glui_window->add_radiobutton_to_group(ot_group, "Dodecahedron");
-	glui_window->add_radiobutton_to_group(ot_group, "Octahedron");
-	glui_window->add_radiobutton_to_group(ot_group, "Tetrahedron");
-	glui_window->add_radiobutton_to_group(ot_group, "Icosahedron");
-	glui_window->add_radiobutton_to_group(ot_group, "Teapot");
-
-	//---------------------------------------------------------------------
-	// 'Transformation' Panel
-	//---------------------------------------------------------------------
-
-	//  Add the 'Transformation' Panel to the GLUI window
-	GLUI_Panel *transformation_panel = glui_window->add_panel("Transformation");
-
-	//  Create transformation panel 1 that will contain the Translation controls
-	GLUI_Panel *transformation_panel1 = glui_window->add_panel_to_panel(transformation_panel, "");
-
-	//  Add the xy translation control
-	GLUI_Translation *translation_xy = glui_window->add_translation_to_panel(transformation_panel1, "Translation XY", GLUI_TRANSLATION_XY, translate_xy, TRANSLATION_XY, glui_callback);
-
-	//  Set the translation speed
-	translation_xy->set_speed(0.005);
-
-	//  Add column, but don't draw it
-	glui_window->add_column_to_panel(transformation_panel1, false);
-
-	//  Add the z translation control
-	GLUI_Translation *translation_z = glui_window->add_translation_to_panel(transformation_panel1, "Translation Z", GLUI_TRANSLATION_Z, &translate_z, TRANSLATION_Z, glui_callback);
-
-	//  Set the translation speed
-	translation_z->set_speed(0.005);
-
-	//  Create transformation panel 2 that will contain the rotation and spinner controls
-	GLUI_Panel *transformation_panel2 = glui_window->add_panel_to_panel(transformation_panel, "");
-
-	//  Add the rotation control
-	glui_window->add_rotation_to_panel(transformation_panel2, "Rotation", rotation_matrix, ROTATION, glui_callback);
-
-	//  Add separator
-	glui_window->add_separator_to_panel(transformation_panel2);
-
-	//  Add the scale spinner
-	GLUI_Spinner *spinner = glui_window->add_spinner_to_panel(transformation_panel2, "Scale", GLUI_SPINNER_FLOAT, &scale, SCALE_SPINNER, glui_callback);
-
-	//  Set the limits for the spinner
-	spinner->set_float_limits(-4.0, 4.0);
-
-	//---------------------------------------------------------------------
-	// 'Quit' Button
-	//---------------------------------------------------------------------
-
-	//  Add the Quit Button
-	glui_window->add_button("Quit", QUIT_BUTTON, glui_callback);
-
-	//  Let the GLUI window know where its main graphics window is
-	glui_window->set_main_gfx_window(main_window);
-}
-
-//-------------------------------------------------------------------------
-//  GLUI callback function.
-//-------------------------------------------------------------------------
-void glui_callback(int control_id)
-{
-	//  Notify that this is a GLUI Callback
-	printf("GLUI: ");
-
-	//  Behave based on control ID
-	switch (control_id)
-	{
-		//  Color Listbox item changed
-	case COLOR_LISTBOX:
-
-		printf("Color List box item changed: ");
-
-		switch (listbox_item_id)
-		{
-			//  Select black color
-		case 1:
-			color[0] = 0 / 255.0;
-			color[1] = 0 / 255.0;
-			color[2] = 0 / 255.0;
-			break;
-			//  Select blue color
-		case 2:
-			color[0] = 0 / 255.0;
-			color[1] = 0 / 255.0;
-			color[2] = 255 / 255.0;
-			break;
-			//  Select cyan color
-		case 3:
-			color[0] = 0 / 255.0;
-			color[1] = 255 / 255.0;
-			color[2] = 255 / 255.0;
-			break;
-			//  Select dark grey color
-		case 4:
-			color[0] = 64 / 255.0;
-			color[1] = 64 / 255.0;
-			color[2] = 64 / 255.0;
-			break;
-			//  Select grey color
-		case 5:
-			color[0] = 128 / 255.0;
-			color[1] = 128 / 255.0;
-			color[2] = 128 / 255.0;
-			break;
-			//  Select green color
-		case 6:
-			color[0] = 0 / 255.0;
-			color[1] = 255 / 255.0;
-			color[2] = 0 / 255.0;
-			break;
-			//  Select light gray color
-		case 7:
-			color[0] = 192 / 255.0;
-			color[1] = 192 / 255.0;
-			color[2] = 192 / 255.0;
-			break;
-			//  Select magenta color
-		case 8:
-			color[0] = 192 / 255.0;
-			color[1] = 64 / 255.0;
-			color[2] = 192 / 255.0;
-			break;
-			//  Select orange color
-		case 9:
-			color[0] = 255 / 255.0;
-			color[1] = 192 / 255.0;
-			color[2] = 64 / 255.0;
-			break;
-			//  Select pink color
-		case 10:
-			color[0] = 255 / 255.0;
-			color[1] = 0 / 255.0;
-			color[2] = 255 / 255.0;
-			break;
-			//  Select red color
-		case 11:
-			color[0] = 255 / 255.0;
-			color[1] = 0 / 255.0;
-			color[2] = 0 / 255.0;
-			break;
-			//  Select white color
-		case 12:
-			color[0] = 255 / 255.0;
-			color[1] = 255 / 255.0;
-			color[2] = 255 / 255.0;
-			break;
-			//  Select yellow color
-		case 13:
-			color[0] = 255 / 255.0;
-			color[1] = 255 / 255.0;
-			color[2] = 0 / 255.0;
-			break;
-		}
-
-		printf("Item %d selected.\n", listbox_item_id);
-
-		break;
-
-		//  A Radio Button in the radio group is selected
-	case OBJECTYPE_RADIOGROUP:
-
-		printf("Radio Button %d selected.\n", radiogroup_item_id);
-
-		break;
-
-		//  Translation XY control
-	case TRANSLATION_XY:
-
-		printf("Translating X and Y coordinates: ");
-		printf("X: %f, Y: %f.\n", translate_xy[0], translate_xy[1]);
-
-		break;
-
-		//  Translation Z control
-	case TRANSLATION_Z:
-
-		printf("Translating Z coordinate: ");
-		printf("Z: %f.\n", translate_z);
-
-		break;
-
-
-		//  Scaling
-	case SCALE_SPINNER:
-
-		printf("Scaling Object: %f.\n", scale);
-
-		break;
-
-		//  Quit Button clicked
-	case QUIT_BUTTON:
-
-		printf("Quit Button clicked... Exit!\n");
-
-		exit(1);
-
-		break;
-
-	}
-}
-
-//-------------------------------------------------------------------------
-//  Idle Callback function.
-//
-//  Set the main_window as the current window to avoid sending the
-//  redisplay to the GLUI window rather than the GLUT window. 
-//  Call the Sleep function to stop the GLUI program from causing
-//  starvation.
-//-------------------------------------------------------------------------
-void idle()
-{
-	glutSetWindow(main_window);
-	glutPostRedisplay();
-	Sleep(50);
-}
-
 
 //main: The main program
-int main(int argc, char **argv) 
+int main(int argc, char **argv)
 {
 	printf("Fluid Flow Simulation and Visualization\n");
 	printf("=======================================\n");
@@ -896,32 +837,39 @@ int main(int argc, char **argv)
 	printf("T/t:   increase/decrease simulation timestep\n");
 	printf("S/s:   increase/decrease hedgehog scaling\n");
 	printf("c:     toggle direction coloring on/off\n");
-	printf("V/vy:   increase decrease fluid viscosity\n");
+	printf("V/v:   increase decrease fluid viscosity\n");
 	printf("x:     toggle drawing matter on/off\n");
 	printf("y:     toggle drawing hedgehogs on/off\n");
 	printf("m:     toggle thru scalar coloring\n");
 	printf("a:     toggle the animation on/off\n");
+        printf("1:     decrease min\n");
+        printf("2:     increase min\n");
+        printf("3:     decrease max\n");
+        printf("4:     increase max\n");
+        printf("5:     decrease number of colors (min = 2)\n");
+        printf("6:     increase number of colors (max = 256)\n");
 	printf("q:     quit\n\n");
 
+        
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
-	glutInitWindowSize(500,500);
-	main_window = glutCreateWindow(window_title);
+//        glutInitWindowPosition(100, 100);
+	glutInitWindowSize(400,400);
+	glutCreateWindow("Real-time smoke simulation and visualization");
 	glutDisplayFunc(display);
 	glutReshapeFunc(reshape);
 	glutIdleFunc(do_one_simulation_step);
 	glutKeyboardFunc(keyboard);
 	glutMotionFunc(drag);
-	
-	init_simulation(DIM);	//initialize the simulation data structures	
-
-//	glutInitWindowSize(300, 50);
-//	glutCreateWindow("value");
-//	glutDisplayFunc(display2);
-
-//  Setup all GLUI stuff
-//	setupGLUI();
-
+	init_simulation(DIM);	//initialize the simulation data structures
+        
+        
+//        glutInitWindowSize(300,50);
+//        glutCreateWindow("value");
+//        glutDisplayFunc(display2);
+//	glutIdleFunc(do_one_simulation_step2);
+        
+        
 	glutMainLoop();			//calls do_one_simulation_step, keyboard, display, drag, reshape
 	return 0;
 }
