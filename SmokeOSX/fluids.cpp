@@ -30,6 +30,7 @@ float vec_scale = 1000;            //scaling of hedgehogs
 int   draw_smoke = 0;           //draw the smoke or not
 int   draw_vecs = 0;            //draw the vector field or not
 int draw_gradient=0;
+int draw_streamline=0;
 const int COLOR_BLACKWHITE=0;   //different types of color mapping: black-and-white, rainbow, banded
 const int COLOR_RAINBOW=1;
 const int COLOR_BANDS=2;
@@ -89,6 +90,10 @@ fftw_real  hn = (fftw_real)(winHeight-20) / (fftw_real)(DIM + 1);  // Grid cell 
 int gradient_col = 0;   //0: gradient_smoke  1:gradient_velocity
 float gradient_size_smoke = 5;
 float gradient_size_velo = 5;
+float mouse_px;
+float mouse_py;
+bool has_click = false;
+
 
 //------ SIMULATION CODE STARTS HERE -----------------------------------------------------------------
 
@@ -906,57 +911,64 @@ void drawAxes(float vx1, float vx2, float vy1, float vy2,float vy)
     glPopMatrix();
 }
 
-void drawGradient(){
-    for (int i = 0; i < DIM; i++)
-        for (int j = 0; j < DIM; j++){
-            if(gradient_col == 0){
-                float left_rho = rho[((j-1) * DIM) + i];
-                float up_rho =  rho[(j * DIM) + (i-1)];
-                float below_rho = rho[(j * DIM) + (i+1)];
-                float right_rho =  rho[((j+1) * DIM) + (i)];
-                float x = left_rho - right_rho;
-                float y = up_rho - below_rho;
-                float vx = y*gradient_size_smoke;
-                float vy = x*gradient_size_smoke;
-                float length = sqrt(vx*vx+vy*vy);
-                if (length > 0){
-//                    drawArrow(v, i*cell_width, j*cell_height, v.length(), 2, 0, 1, scalar_col);
-                    
-                    float angle = angle2DVector(vx, vy);
-                    set_colormap_gradient(100*length);
-                    glPushMatrix();
-                    glTranslatef(i*wn, j*hn, 0);
-                    glRotated(angle, 0, 0, 1);
-                    glScaled(log(length/2+1),log(length/(2/2)+1),0);
-                    glBegin(GL_TRIANGLES);
-                    // arrow base size of 2/20th of cell width
-                    float size_right = (wn/20)*11.0;
-                    float size_left = (wn/20)*9.0;
-                    float half_cell_height = hn/2.0;
-                    // arrow head, whole cell width, 1/3 of cell heigth
-                    glVertex2f(0, half_cell_height);            //base1
-                    glVertex2f(cell_width/2, cell_height);       //tip
-                    glVertex2f(cell_width, half_cell_height);    //base2
-                    // arrow tail (made up of 2 triangles)
-                    glScaled(log(length+1),log(length+1),0);
-                    glVertex2f(size_right, half_cell_height);
-                    glVertex2f(size_left, 0);
-                    glVertex2f(size_left, half_cell_height);
-                    glVertex2f(size_right, 0);
-                    glVertex2f(size_right, half_cell_height);
-                    glVertex2f(size_left, 0);
-                    
-                    glEnd();
-                    glPopMatrix(); // now it's at normal scale again
-                    glLoadIdentity(); // needed to stop the rotating, otherwise rotates the entire drawing
-                    
+
+void stepStreamLine(float px, float py, int step, int current_step){
+    int i, j, idx, idx0, idx1, idx2, idx3;
+    float px0,py0,px1,py1,px2,py2,px3,py3;
+//    printf("%g %g", px, py);
+    float dist = 0.5 *wn;
+    glBegin(GL_LINES);
+    for (i = 0; i < DIM; i++)
+        for (j = 0; j < DIM; j++){
+            px0  = wn + (fftw_real)i * wn;
+            py0  = hn + (fftw_real)j * hn;
+            idx0 = (j * DIM) + i;
+            
+            px1  = wn + (fftw_real)i * wn;
+            py1  = hn + (fftw_real)(j + 1) * hn;
+            idx1 = ((j + 1) * DIM) + i;
+            
+            px2  = wn + (fftw_real)(i + 1) * wn;
+            py2  = hn + (fftw_real)(j + 1) * hn;
+            idx2 = ((j + 1) * DIM) + (i + 1);
+            
+            px3  = wn + (fftw_real)(i + 1) * wn;
+            py3  = hn + (fftw_real)j * hn;
+            idx3 = (j * DIM) + (i + 1);
+            
+            if(px > px0 && px < px2 && py > py0 && py < py2){
+                float x_diff = px - px0;
+                float y_diff = py - py0;
+                
+                float vx_bot = (vx[idx3] - vx[idx0])*x_diff/wn + vx[idx0];
+                float vx_top = (vx[idx2] - vx[idx1])*x_diff/wn + vx[idx1];
+                float px_v = (vx_top - vx_bot)*y_diff/hn + vx_bot;
+                
+                float vy_bot = (vy[idx3] - vy[idx0])*x_diff/wn + vy[idx0];
+                float vy_top = (vy[idx2] - vy[idx1])*x_diff/wn + vy[idx1];
+                float py_v = (vy_top - vy_bot)*y_diff/hn + vy_bot;
+                
+                float p0_length = len2DVector(px_v, py_v);
+                
+                float dt = dist/p0_length;
+                float pnext_x = px + px_v * dt;
+                float pnext_y = py + py_v * dt;
+                
+                if(dt < 3000 && pnext_x < winWidth && pnext_x > 0 && pnext_y < winHeight && pnext_y > 0){
+                    glBegin(GL_LINES);
+                    glVertex2f(px, py);
+                    glVertex2f(pnext_x, pnext_y);
+                    set_colormap_vector(100*p0_length);
+                    current_step = current_step + 1;
+                    if(step > current_step){
+                        stepStreamLine(pnext_x, pnext_y, step, current_step);
+                    }
                 }
-            }else if(gradient_col==1){
                 
             }
         }
+    glEnd();
 }
-
 
 void visualize(void)
 {
@@ -1126,10 +1138,86 @@ void visualize(void)
         dispBarValVector();
     }
     
+    //=============gradient====================
+    
     if(draw_gradient){
-        drawGradient();
+        float px0,py0,px1,py1,px2,py2,px3,py3;
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+//        glBegin(GL_LINES);
+//            glBegin(GL_TRIANGLE_STRIP);
+            for (i = 0; i < DIM; i++)
+                for (j = 0; j < DIM; j++){
+                    idx = (j * DIM) + i;
+                    px0  = wn + (fftw_real)i * wn;
+                    py0  = hn + (fftw_real)j * hn;
+                    idx0 = (j * DIM) + i;
+                    
+                    px1  = wn + (fftw_real)i * wn;
+                    py1  = hn + (fftw_real)(j + 1) * hn;
+                    idx1 = ((j + 1) * DIM) + i;
+                    
+                    px2  = wn + (fftw_real)(i + 1) * wn;
+                    py2  = hn + (fftw_real)(j + 1) * hn;
+                    idx2 = ((j + 1) * DIM) + (i + 1);
+                    
+                    px3  = wn + (fftw_real)(i + 1) * wn;
+                    py3  = hn + (fftw_real)j * hn;
+                    idx3 = (j * DIM) + (i + 1);
+                    
+                    if(gradient_col==0){     //density
+                        if (j % 1==0 && i % 1==0){
+                            float px = 0.5*(px3+px0);
+                            float py = 0.5*(py0+py1);
+                            float dfx = 0.5*(rho[idx3]-rho[idx0]) + 0.5*(rho[idx2]-rho[idx1]);
+                            float dfy = 0.5*(rho[idx1]-rho[idx0]) + 0.5*(rho[idx2]-rho[idx3]);
+                            float length = len2DVector(dfx, dfy);
+                            int scale = 10;
+                            int triscale = 0.5;
+                            glBegin(GL_LINES);
+                            set_colormap_gradient(10*length);
+                            glVertex2f(px, py);
+                            glVertex2f(px + scale * dfx, py + scale*dfy);
+//                            glBegin(GL_TRIANGLE_STRIP);
+//                            glVertex2f(px + scale * dfx, py + scale*dfy);
+//                            glVertex2f(px + triscale*dfy, py - triscale*dfx);
+//                            glVertex2f(px - triscale*dfy, py + triscale*dfx);
+                        }
+                    }else if(gradient_col == 1){
+                        if (j % 2==0 && i % 2==0){
+                        float px = 0.5*(px3+px0);
+                        float py = 0.5*(py0+py1);
+                        float dfx = 0.5*(vx[idx3]-vx[idx0]) + 0.5*(vx[idx2]-vx[idx1]);
+                        float dfy = 0.5*(vx[idx1]-vx[idx0]) + 0.5*(vx[idx2]-vx[idx3]);
+                        float length = len2DVector(dfx, dfy);
+                        int scale = 1000;
+                        int triscale = 100;
+                        glBegin(GL_LINES);
+                        set_colormap_gradient(1000*length);
+                        glVertex2f(px, py);
+                        glVertex2f(px + scale * dfx, py + scale*dfy);
+//                        glBegin(GL_TRIANGLE_STRIP);
+//                        set_colormap_gradient(100*length);
+//                        glVertex2f(px + scale * dfx, py + scale*dfy);
+//                        glVertex2f(px + triscale*dfy, py - triscale*dfx);
+//                        glVertex2f(px - triscale*dfy, py + triscale*dfx);
+//                            glVertex2f((fftw_real)i*hn + scale * dfy, (fftw_real)j*wn - scale * dfx);
+//                            glVertex2f((fftw_real)i*hn - scale * dfy, (fftw_real)j*wn + scale * dfx);
+//                            glVertex2f((fftw_real)i*wn + vec_scale * dfx, (fftw_real)j*hn + vec_scale * dfy);
+                        }
+        }
+                    
+        }
+        glEnd();
     }
    
+    if(draw_streamline){
+        if (has_click){
+//            has_click = false;
+            stepStreamLine(mouse_px, mouse_py, 200, 0);
+        }
+    }
+    
+    
 }
 
 
@@ -1169,6 +1257,8 @@ void reshape(int w, int h)
     glLoadIdentity();
     gluOrtho2D(0.0, (GLdouble)w, 0.0, (GLdouble)h);
     winWidth = w; winHeight = h;
+    wn = (fftw_real)(winWidth-20) / (fftw_real)(DIM + 1);   // Grid cell width
+    hn = (fftw_real)(winHeight-20) / (fftw_real)(DIM + 1);
     glutPostRedisplay();
 }
 
@@ -1294,7 +1384,18 @@ void drag(int mx, int my)
     glutPostRedisplay();
 }
 
-
+void OnMouseClick(int botton, int state, int x, int y){
+    
+//    printf("click ");
+    if(draw_streamline && botton == GLUT_LEFT_BUTTON){
+        
+//        printf("click streamline\n");
+//        stepStreamLine(x, y);
+        has_click = true;
+        mouse_px = x;
+        mouse_py = winHeight - y;
+    }
+}
 
 //main: The main program
 int main(int argc, char **argv)
@@ -1327,6 +1428,7 @@ int main(int argc, char **argv)
     GLUI_Master.set_glutReshapeFunc(reshape);
     glutKeyboardFunc(keyboard);
     glutMotionFunc(drag);
+    glutMouseFunc(OnMouseClick);
     init_simulation(DIM);    //initialize the simulation data structures
     
     
@@ -1403,6 +1505,7 @@ int main(int argc, char **argv)
     new GLUI_RadioButton(grad_map, "Heatmap");
     new GLUI_RadioButton(grad_map, "Rainbow");
     
+    new GLUI_Checkbox(obj_panel4, "StreamLine", &draw_streamline);
     
 // change hue and saturation
 //    obj_panel5 = new GLUI_Rollout(glui, "Gradient Panel", true);
