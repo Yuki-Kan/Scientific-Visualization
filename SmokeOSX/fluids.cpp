@@ -1072,7 +1072,8 @@ void visualize(void){
         dispBarValVector();
     }
     
-    //=============gradient====================
+    
+// ============= gradient ====================
     
     if(draw_gradient){
         float px0,py0,px1,py1,px2,py2,px3,py3;
@@ -1099,45 +1100,51 @@ void visualize(void){
                     idx3 = (j * DIM) + (i + 1);
                     
                     if(gradient_col==0){     //density
-                        if (j % 1==0 && i % 1==0){
+                        if (j % 2==0 && i % 2==0){
                             float px = 0.5*(px0+px2);
                             float py = 0.5*(py0+py2);
                             float dfx = 0.5*(rho[idx1]-rho[idx0])/wn + 0.5*(rho[idx2]-rho[idx3])/wn;
                             float dfy = 0.5*(rho[idx3]-rho[idx0])/hn + 0.5*(rho[idx2]-rho[idx1])/hn;
                             float length = len2DVector(dfx, dfy);
-                            int scale = 10;
-                            int triscale = 3;
+                            int scale = 48;
+                            int triscale = 8;
 //                            glBegin(GL_LINES);
 //                            set_colormap_gradient(10*length);
 //                            glVertex2f(px, py);
 //                            glVertex2f(px + scale * dfx, py + scale*dfy);
-                            glBegin(GL_TRIANGLE_STRIP);
+//                            glBegin(GL_TRIANGLE_STRIP);
+                            glBegin(GL_TRIANGLES);
                             set_colormap_gradient(100*length);
                             glVertex2f(px + scale * dfx, py + scale * dfy);
                             glVertex2f(px + triscale * dfy, py - triscale * dfx);
                             glVertex2f(px - triscale * dfy, py + triscale * dfx);
                         }
+                        
                     }else if(gradient_col == 1){
                         if (j % 2==0 && i % 2==0){
                         float px = 0.5*(px2+px0);
                         float py = 0.5*(py0+py2);
-                        float dfy = 0.5*(vx[idx3]-vx[idx0])/hn + 0.5*(vx[idx2]-vx[idx1])/hn;
-                        float dfx = 0.5*(vx[idx1]-vx[idx0])/wn + 0.5*(vx[idx2]-vx[idx3])/wn;
+                        float mag_v0 = len2DVector(vx[idx0], vy[idx0]);
+                        float mag_v1 = len2DVector(vx[idx1], vy[idx1]);
+                        float mag_v2 = len2DVector(vx[idx2], vy[idx2]);
+                        float mag_v3 = len2DVector(vx[idx3], vy[idx3]);
+                        float dfx = 0.5*(mag_v1-mag_v0)/wn + 0.5*(mag_v2-mag_v3)/wn;
+                        float dfy = 0.5*(mag_v3-mag_v0)/hn + 0.5*(mag_v2-mag_v1)/hn;
                         float length = len2DVector(dfx, dfy);
-                        int scale = 100;
-                        int triscale = 50;
+                        int scale = 10000;
+                        int triscale = 1000;
 //                        glBegin(GL_LINES);
 //                        set_colormap_gradient(1000*length);
 //                        glVertex2f(px, py);
 //                        glVertex2f(px + scale * dfx, py + scale*dfy);
-                        glBegin(GL_TRIANGLE_STRIP);
-                        set_colormap_gradient(length);
-//                        glVertex2f(px + scale * dfx, py + scale*dfy);
-//                        glVertex2f(py + triscale*dfy, px - triscale*dfx);
-//                        glVertex2f(py - triscale*dfy, px + triscale*dfx);
-                            glVertex2f((fftw_real)i*hn + scale * dfy, (fftw_real)j*wn - scale * dfx);
-                            glVertex2f((fftw_real)i*hn - scale * dfy, (fftw_real)j*wn + scale * dfx);
-                            glVertex2f((fftw_real)i*wn + triscale * dfx, (fftw_real)j*hn + triscale * dfy);
+                        glBegin(GL_TRIANGLES);
+                        set_colormap_gradient(1000*length);
+                        glVertex2f(px + scale * dfx, py + scale*dfy);
+                        glVertex2f(px + triscale*dfy, py - triscale*dfx);
+                        glVertex2f(px - triscale*dfy, py + triscale*dfx);
+//                            glVertex2f((fftw_real)i*hn + scale * dfy, (fftw_real)j*wn - scale * dfx);
+//                            glVertex2f((fftw_real)i*hn - scale * dfy, (fftw_real)j*wn + scale * dfx);
+//                            glVertex2f((fftw_real)i*wn + triscale * dfx, (fftw_real)j*hn + triscale * dfy);
                         }
         }
                     
