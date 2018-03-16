@@ -847,58 +847,68 @@ void drawAxes(float vx1, float vx2, float vy1, float vy2,float vy)
 
 
 void stepStreamLine(float px, float py, int step, int current_step){
-    int i, j, idx0, idx1, idx2, idx3;
+    int i, j, idx, idx0, idx1, idx2, idx3;
     float px0,py0,px1,py1,px2,py2,px3,py3;
     float dist = 0.5 *wn;
+    bool drawing_flag = true;
     glBegin(GL_LINES);
-    for (i = 0; i < DIM; i++)
-        for (j = 0; j < DIM; j++){
-            px0  = wn + (fftw_real)i * wn;
-            py0  = hn + (fftw_real)j * hn;
-            idx0 = (j * DIM) + i;
-            
-            px1  = wn + (fftw_real)i * wn;
-            py1  = hn + (fftw_real)(j + 1) * hn;
-            idx1 = ((j + 1) * DIM) + i;
-            
-            px2  = wn + (fftw_real)(i + 1) * wn;
-            py2  = hn + (fftw_real)(j + 1) * hn;
-            idx2 = ((j + 1) * DIM) + (i + 1);
-            
-            px3  = wn + (fftw_real)(i + 1) * wn;
-            py3  = hn + (fftw_real)j * hn;
-            idx3 = (j * DIM) + (i + 1);
-            
-            if(px > px0 && px < px2 && py > py0 && py < py2){
-                float x_diff = px - px0;
-                float y_diff = py - py0;
+    while (drawing_flag && current_step <= step) {
+        for (i = 0; i < DIM; i++) {
+            for (j = 0; j < DIM; j++) {
+                px0 = wn + (fftw_real)i * wn;
+                py0 = hn + (fftw_real)j * hn;
+                idx0 = (j * DIM) + i;
                 
-                float vx_bot = (vx[idx3] - vx[idx0])*x_diff/wn + vx[idx0];
-                float vx_top = (vx[idx2] - vx[idx1])*x_diff/wn + vx[idx1];
-                float px_v = (vx_top - vx_bot)*y_diff/hn + vx_bot;
+                px1 = wn + (fftw_real)i * wn;
+                py1 = hn + (fftw_real)(j + 1) * hn;
+                idx1 = ((j + 1) * DIM) + i;
                 
-                float vy_bot = (vy[idx3] - vy[idx0])*x_diff/wn + vy[idx0];
-                float vy_top = (vy[idx2] - vy[idx1])*x_diff/wn + vy[idx1];
-                float py_v = (vy_top - vy_bot)*y_diff/hn + vy_bot;
+                px2 = wn + (fftw_real)(i + 1) * wn;
+                py2 = hn + (fftw_real)(j + 1) * hn;
+                idx2 = ((j + 1) * DIM) + (i + 1);
                 
-                float p0_length = len2DVector(px_v, py_v);
+                px3 = wn + (fftw_real)(i + 1) * wn;
+                py3 = hn + (fftw_real)j * hn;
+                idx3 = (j * DIM) + (i + 1);
                 
-                float dt = dist/p0_length;
-                float pnext_x = px + px_v * dt;
-                float pnext_y = py + py_v * dt;
-                
-                if(dt < 3000 && pnext_x < winWidth-20 && pnext_x > 0 && pnext_y < winHeight && pnext_y > 0){
-                    glBegin(GL_LINES);
-                    glVertex2f(px, py);
-                    glVertex2f(pnext_x, pnext_y);
-                    set_colormap_vector(100*p0_length);
-                    current_step = current_step + 1;
-                    if(step > current_step){
-                        stepStreamLine(pnext_x, pnext_y, step, current_step);
+                if (px > px0 && px < px2 && py > py0 && py < py2) {
+                    float x_diff = px - px0;
+                    float y_diff = py - py0;
+                    
+                    float vx_bot = (vx[idx3] - vx[idx0])*x_diff / wn + vx[idx0];
+                    float vx_top = (vx[idx2] - vx[idx1])*x_diff / wn + vx[idx1];
+                    float px_v = (vx_top - vx_bot)*y_diff / hn + vx_bot;
+                    
+                    float vy_bot = (vy[idx3] - vy[idx0])*x_diff / wn + vy[idx0];
+                    float vy_top = (vy[idx2] - vy[idx1])*x_diff / wn + vy[idx1];
+                    float py_v = (vy_top - vy_bot)*y_diff / hn + vy_bot;
+                    
+                    float p0_length = len2DVector(px_v, py_v);
+                    
+                    float dt = dist / p0_length;
+                    float pnext_x = px + px_v * dt;
+                    float pnext_y = py + py_v * dt;
+                    
+                    if (pnext_x < winWidth && pnext_x > 0 && pnext_y < winHeight && pnext_y > 0) {
+                        if (dt < 3000) {
+                            glBegin(GL_LINES);
+                            glVertex2f(px, py);
+                            glVertex2f(pnext_x, pnext_y);
+                            set_colormap_vector(100 * p0_length);
+                            px = pnext_x;
+                            py = pnext_y;
+                        }
+                        else {
+                            drawing_flag = false;
+                            break;
+                        }
                     }
+                    
                 }
             }
         }
+        current_step = current_step + 1;
+    }
     glEnd();
 }
 
@@ -1095,8 +1105,8 @@ void visualize(void){
                             float dfx = 0.5*(rho[idx1]-rho[idx0])/wn + 0.5*(rho[idx2]-rho[idx3])/wn;
                             float dfy = 0.5*(rho[idx3]-rho[idx0])/hn + 0.5*(rho[idx2]-rho[idx1])/hn;
                             float length = len2DVector(dfx, dfy);
-                            int scale = 1;
-                            int triscale = 0.3;
+                            int scale = 10;
+                            int triscale = 3;
 //                            glBegin(GL_LINES);
 //                            set_colormap_gradient(10*length);
 //                            glVertex2f(px, py);
