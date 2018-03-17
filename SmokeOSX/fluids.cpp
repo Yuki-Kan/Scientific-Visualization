@@ -845,65 +845,226 @@ void drawAxes(float vx1, float vx2, float vy1, float vy2,float vy)
     glPopMatrix();
 }
 
+void drawSmoke(float &px0, float &py0, int &idx0,
+               float &px1, float &py1, int &idx1,
+               float &px2, float &py2, int &idx2,
+               float &px3, float &py3, int &idx3){
+ 
+    if(scalr_data == RHO){
+        set_colormap(rho[idx0]);    glVertex2f(px0, py0);
+        set_colormap(rho[idx1]);    glVertex2f(px1, py1);
+        set_colormap(rho[idx2]);    glVertex2f(px2, py2);
 
-void stepStreamLine(float px, float py, int step, int current_step){
-    int i, j, idx, idx0, idx1, idx2, idx3;
-    float px0,py0,px1,py1,px2,py2,px3,py3;
-    float dist = 0.5 *wn;
+        set_colormap(rho[idx0]);    glVertex2f(px0, py0);
+        set_colormap(rho[idx2]);    glVertex2f(px2, py2);
+        set_colormap(rho[idx3]);    glVertex2f(px3, py3);
+    }
+    else if (scalr_data == VELO){
+        float vel0 = 100*sqrt(vx[idx0]*vx[idx0]+vy[idx0]*vy[idx0]);
+        float vel1 = 100*sqrt(vx[idx1]*vx[idx1]+vy[idx1]*vy[idx1]);
+        float vel2 = 100*sqrt(vx[idx2]*vx[idx2]+vy[idx2]*vy[idx2]);
+        float vel3 = 100*sqrt(vx[idx3]*vx[idx3]+vy[idx3]*vy[idx3]);
+
+        set_colormap(vel0);    glVertex2f(px0, py0);
+        set_colormap(vel1);    glVertex2f(px1, py1);
+        set_colormap(vel2);    glVertex2f(px2, py2);
+
+        set_colormap(vel0);    glVertex2f(px0, py0);
+        set_colormap(vel2);    glVertex2f(px2, py2);
+        set_colormap(vel3);    glVertex2f(px3, py3);
+    }
+    else if (scalr_data == FORCE){
+        float force0 = 100*sqrt(fx[idx0]*fx[idx0]+fy[idx0]*fy[idx0]);
+        float force1 = 100*sqrt(fx[idx1]*fx[idx1]+fy[idx1]*fy[idx1]);
+        float force2 = 100*sqrt(fx[idx2]*fx[idx2]+fy[idx2]*fy[idx2]);
+        float force3 = 100*sqrt(fx[idx3]*fx[idx3]+fy[idx3]*fy[idx3]);
+
+        set_colormap(force0);    glVertex2f(px0, py0);
+        set_colormap(force1);    glVertex2f(px1, py1);
+        set_colormap(force2);    glVertex2f(px2, py2);
+
+        set_colormap(force0);    glVertex2f(px0, py0);
+        set_colormap(force2);    glVertex2f(px2, py2);
+        set_colormap(force3);    glVertex2f(px3, py3);
+    }
+
+}
+
+
+void drawVector(int &i, int &j, int &idx){
+    glBegin(GL_LINES);                //draw velocities
+    float val_mag = 0;
+    if (vect_data== VELO){
+        if (glyph == hedge) {
+            if (j % 5==0 && i % 5==0){
+                val_mag = sqrt(vx[idx] * vx[idx] + vy[idx] * vy[idx]);
+                set_colormap_vector(100*val_mag);
+                glVertex2f(wn + (fftw_real)i * wn, hn + (fftw_real)j * hn);
+                glVertex2f((wn + (fftw_real)i * wn) + vec_scale * vx[idx], (hn + (fftw_real)j * hn) + vec_scale * vy[idx]);
+            }
+        }else if (glyph == arrow){
+            if (j % 2==0 && i % 2==0){
+                float x1 = wn+(fftw_real)i * wn;
+                float y1 = hn+(fftw_real)j * hn;
+                float x2 = (wn + (fftw_real)i * wn) + vec_scale * vx[idx];
+                float y2 = (hn + (fftw_real)j * hn) + vec_scale * vy[idx];
+                float vec_vx = x1 - x2;
+                float vec_vy = y1 - y2;
+                float len = len2DVector(vec_vx, vec_vy);
+//                        drawArrow(x1, x2, y1, y2, len/15);
+//                        drawAxes(x1, x2, y1, y2, len/15);
+                draw3D(x1, x2, y1, y2, len/10);
+            }
+        }else if (glyph == triangle){
+            if (j % 4==0 && i % 4==0){
+                val_mag = sqrt(vx[idx] * vx[idx] + vy[idx] * vy[idx]);
+                glBegin(GL_TRIANGLE_STRIP);
+                set_colormap_vector(100*val_mag);
+                int scale = 300;
+                glVertex2f((fftw_real)i*hn + scale * vy[idx], (fftw_real)j*wn - scale * vx[idx]);
+                glVertex2f((fftw_real)i*hn - scale * vy[idx], (fftw_real)j*wn + scale * vx[idx]);
+                glVertex2f((fftw_real)i*wn + vec_scale * vx[idx], (fftw_real)j*hn + vec_scale * vy[idx]);
+                glEnd();
+                glFlush();
+            }
+        }
+        else if (glyphs == "3D"){
+
+            
+        }
+    }
+    else if (vect_data== FORCE){
+        if (glyph == hedge) {
+            val_mag = sqrt(fx[idx] * fx[idx] + fy[idx] * fy[idx]);
+            set_colormap_vector(100*val_mag);
+            glVertex2f(wn + (fftw_real)i * wn, hn + (fftw_real)j * hn);
+            glVertex2f((wn + (fftw_real)i * wn) + vec_scale * fx[idx], (hn + (fftw_real)j * hn) + vec_scale * fy[idx]);
+
+        }else if (glyph == arrow){
+            if (j % 5==0 && i % 5==0){
+                float x1 = wn+(fftw_real)i * wn;
+                float y1 = hn+(fftw_real)j * hn;
+                float x2 = (wn + (fftw_real)i * wn) + vec_scale * fx[idx];
+                float y2 = (hn + (fftw_real)j * hn) + vec_scale * fy[idx];
+                float vec_vx = x1 - x2;
+                float vec_vy = y1 - y2;
+                float len = len2DVector(vec_vx, vec_vy);
+                drawArrow(x1, x2, y1, y2, len/15);
+//                        drawAxes(x1, x2, y1, y2, len/15);
+            }
+        }else if (glyph == triangle){
+            glBegin(GL_TRIANGLE_STRIP);
+            val_mag = sqrt(fx[idx] * fx[idx] + fy[idx] * fy[idx]);
+            set_colormap_vector(100*val_mag);
+            int scale = 300;
+            glVertex2f((fftw_real)i*hn + scale * fy[idx], (fftw_real)j*wn - scale * fx[idx]);
+            glVertex2f((fftw_real)i*hn - scale * fy[idx], (fftw_real)j*wn + scale * fx[idx]);
+            glVertex2f((fftw_real)i*wn + vec_scale * fx[idx], (fftw_real)j*hn + vec_scale * fy[idx]);
+            // glEnd();
+            // glFlush();
+        }
+        else if (glyphs == "3D"){
+
+        }
+    }
+    glEnd();
+}
+
+
+void drawGradient(int &i, int &j,
+                  float &px0, float &py0, int &idx0, float &px1, float &py1, int &idx1,
+                  float &px2, float &py2, int &idx2, float &px3, float &py3, int &idx3){
+    //        glBegin(GL_LINES);
+    //            glBegin(GL_TRIANGLE_STRIP);
+            
+            if(gradient_col==0){             //density
+                if (j % 2==0 && i % 2==0){
+                    float px = 0.5*(px0+px2);
+                    float py = 0.5*(py0+py2);
+                    float dfx = 0.5*(rho[idx1]-rho[idx0])/wn + 0.5*(rho[idx2]-rho[idx3])/wn;
+                    float dfy = 0.5*(rho[idx3]-rho[idx0])/hn + 0.5*(rho[idx2]-rho[idx1])/hn;
+                    float length = len2DVector(dfx, dfy);
+                    int scale = 80;
+                    int triscale = 8;
+//                    glBegin(GL_LINES);
+//                    set_colormap_gradient(10*length);
+//                    glVertex2f(px, py);
+//                    glVertex2f(px + scale * dfx, py + scale*dfy);
+//                    glBegin(GL_TRIANGLE_STRIP);
+                    glBegin(GL_TRIANGLES);
+                    set_colormap_gradient(100*length);
+                    glVertex2f(px + scale * dfx, py + scale * dfy);
+                    glVertex2f(px + triscale * dfy, py - triscale * dfx);
+                    glVertex2f(px - triscale * dfy, py + triscale * dfx);
+                }
+                
+            }else if(gradient_col == 1){
+                if (j % 2==0 && i % 2==0){
+                    float px = 0.5*(px2+px0);
+                    float py = 0.5*(py0+py2);
+                    float mag_v0 = len2DVector(vx[idx0], vy[idx0]);
+                    float mag_v1 = len2DVector(vx[idx1], vy[idx1]);
+                    float mag_v2 = len2DVector(vx[idx2], vy[idx2]);
+                    float mag_v3 = len2DVector(vx[idx3], vy[idx3]);
+                    float dfx = 0.5*(mag_v1-mag_v0)/wn + 0.5*(mag_v2-mag_v3)/wn;
+                    float dfy = 0.5*(mag_v3-mag_v0)/hn + 0.5*(mag_v2-mag_v1)/hn;
+                    float length = len2DVector(dfx, dfy);
+                    int scale = 10000;
+                    int triscale = 1000;
+//                    glBegin(GL_LINES);
+//                    set_colormap_gradient(1000*length);
+//                    glVertex2f(px, py);
+//                    glVertex2f(px + scale * dfx, py + scale*dfy);
+                    glBegin(GL_TRIANGLES);
+                    set_colormap_gradient(1000*length);
+                    glVertex2f(px + scale * dfx, py + scale*dfy);
+                    glVertex2f(px + triscale*dfy, py - triscale*dfx);
+                    glVertex2f(px - triscale*dfy, py + triscale*dfx);
+                }
+            }
+    glEnd();
+
+}
+
+void stepStreamLine(float px, float py, int step, int current_step,
+                    float &px0, float &py0, int &idx0,
+                    float &px1, float &py1, int &idx1,
+                    float &px2, float &py2, int &idx2,
+                    float &px3, float &py3, int &idx3){
+    float dist = 0.5 * wn;
     bool drawing_flag = true;
     glBegin(GL_LINES);
     while (drawing_flag && current_step <= step) {
-        for (i = 0; i < DIM; i++) {
-            for (j = 0; j < DIM; j++) {
-                px0 = wn + (fftw_real)i * wn;
-                py0 = hn + (fftw_real)j * hn;
-                idx0 = (j * DIM) + i;
-                
-                px1 = wn + (fftw_real)i * wn;
-                py1 = hn + (fftw_real)(j + 1) * hn;
-                idx1 = ((j + 1) * DIM) + i;
-                
-                px2 = wn + (fftw_real)(i + 1) * wn;
-                py2 = hn + (fftw_real)(j + 1) * hn;
-                idx2 = ((j + 1) * DIM) + (i + 1);
-                
-                px3 = wn + (fftw_real)(i + 1) * wn;
-                py3 = hn + (fftw_real)j * hn;
-                idx3 = (j * DIM) + (i + 1);
-                
-                if (px > px0 && px < px2 && py > py0 && py < py2) {
-                    float x_diff = px - px0;
-                    float y_diff = py - py0;
-                    
-                    float vx_bot = (vx[idx3] - vx[idx0])*x_diff / wn + vx[idx0];
-                    float vx_top = (vx[idx2] - vx[idx1])*x_diff / wn + vx[idx1];
-                    float px_v = (vx_top - vx_bot)*y_diff / hn + vx_bot;
-                    
-                    float vy_bot = (vy[idx3] - vy[idx0])*x_diff / wn + vy[idx0];
-                    float vy_top = (vy[idx2] - vy[idx1])*x_diff / wn + vy[idx1];
-                    float py_v = (vy_top - vy_bot)*y_diff / hn + vy_bot;
-                    
-                    float p0_length = len2DVector(px_v, py_v);
-                    
-                    float dt = dist / p0_length;
-                    float pnext_x = px + px_v * dt;
-                    float pnext_y = py + py_v * dt;
-                    
-                    if (pnext_x < winWidth && pnext_x > 0 && pnext_y < winHeight && pnext_y > 0) {
-                        if (dt < 3000) {
-                            glBegin(GL_LINES);
-                            glVertex2f(px, py);
-                            glVertex2f(pnext_x, pnext_y);
-                            set_colormap_vector(100 * p0_length);
-                            px = pnext_x;
-                            py = pnext_y;
-                        }
-                        else {
-                            drawing_flag = false;
-                            break;
-                        }
-                    }
-                    
+        if (px > px0 && px < px2 && py > py0 && py < py2) {
+            float x_diff = px - px0;
+            float y_diff = py - py0;
+
+            float vx_bot = (vx[idx3] - vx[idx0])*x_diff / wn + vx[idx0];
+            float vx_top = (vx[idx2] - vx[idx1])*x_diff / wn + vx[idx1];
+            float px_v = (vx_top - vx_bot)*y_diff / hn + vx_bot;
+
+            float vy_bot = (vy[idx3] - vy[idx0])*x_diff / wn + vy[idx0];
+            float vy_top = (vy[idx2] - vy[idx1])*x_diff / wn + vy[idx1];
+            float py_v = (vy_top - vy_bot)*y_diff / hn + vy_bot;
+
+            float p0_length = len2DVector(px_v, py_v);
+
+            float dt = dist / p0_length;
+            float pnext_x = px + px_v * dt;
+            float pnext_y = py + py_v * dt;
+        
+            if (pnext_x < winWidth-30 && pnext_x > 0 && pnext_y < winHeight && pnext_y > 0) {
+                if (dt < 3000) {
+                    glBegin(GL_LINES);
+                    glVertex2f(px, py);
+                    glVertex2f(pnext_x, pnext_y);
+                    set_colormap_vector(100 * p0_length);
+                    px = pnext_x;
+                    py = pnext_y;
+                }
+                else {
+                    drawing_flag = false;
+                    break;
                 }
             }
         }
@@ -913,18 +1074,12 @@ void stepStreamLine(float px, float py, int step, int current_step){
 }
 
 void visualize(void){
-    int i, j, idx, idx0, idx1, idx2, idx3; double px0,py0,px1,py1,px2,py2,px3,py3;
-
-    fftw_real  wn = (fftw_real)(winWidth-20) / (fftw_real)(DIM + 1);   // Grid cell width
-    fftw_real  hn = (fftw_real)(winHeight-20) / (fftw_real)(DIM + 1);  // Grid cell heigh
-
-    if (draw_smoke){
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        glBegin(GL_TRIANGLES);
-    for (j = 0; j < DIM - 1; j++)            //draw smoke
-    {
-        for (i = 0; i < DIM - 1; i++)
-        {
+    int i, j, idx, idx0, idx1, idx2, idx3;
+    float px0,py0,px1,py1,px2,py2,px3,py3;
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    for (j = 0; j < DIM - 1; j++){
+        for (i = 0; i < DIM - 1; i++){
+            idx = (j * DIM) + i;
             px0  = wn + (fftw_real)i * wn;
             py0  = hn + (fftw_real)j * hn;
             idx0 = (j * DIM) + i;
@@ -941,227 +1096,52 @@ void visualize(void){
             py3  = hn + (fftw_real)j * hn;
             idx3 = (j * DIM) + (i + 1);
             
-            if(scalr_data == RHO){
-                set_colormap(rho[idx0]);    glVertex2f(px0, py0);
-                set_colormap(rho[idx1]);    glVertex2f(px1, py1);
-                set_colormap(rho[idx2]);    glVertex2f(px2, py2);
-                
-                set_colormap(rho[idx0]);    glVertex2f(px0, py0);
-                set_colormap(rho[idx2]);    glVertex2f(px2, py2);
-                set_colormap(rho[idx3]);    glVertex2f(px3, py3);
+            if(draw_smoke){
+                glBegin(GL_TRIANGLES);
+                drawSmoke(px0, py0, idx0, px1, py1, idx1,
+                          px2, py2, idx2, px3, py3, idx3);
+                glEnd();
             }
-            else if (scalr_data == VELO){
-                float vel0 = 100*sqrt(vx[idx0]*vx[idx0]+vy[idx0]*vy[idx0]);
-                float vel1 = 100*sqrt(vx[idx1]*vx[idx1]+vy[idx1]*vy[idx1]);
-                float vel2 = 100*sqrt(vx[idx2]*vx[idx2]+vy[idx2]*vy[idx2]);
-                float vel3 = 100*sqrt(vx[idx3]*vx[idx3]+vy[idx3]*vy[idx3]);
-                
-                set_colormap(vel0);    glVertex2f(px0, py0);
-                set_colormap(vel1);    glVertex2f(px1, py1);
-                set_colormap(vel2);    glVertex2f(px2, py2);
-                
-                set_colormap(vel0);    glVertex2f(px0, py0);
-                set_colormap(vel2);    glVertex2f(px2, py2);
-                set_colormap(vel3);    glVertex2f(px3, py3);
+            
+            if(draw_vecs){
+                drawVector(i , j, idx);}
+            
+            if(draw_gradient){
+                drawGradient(i , j, px0, py0, idx0, px1, py1, idx1,
+                             px2, py2, idx2, px3, py3, idx3);}
+            
+            if(draw_streamline){
+                if (has_click){
+                    stepStreamLine(mouse_px, mouse_py, 200, 0,
+                                   px0, py0, idx0, px1, py1, idx1,
+                                   px2, py2, idx2, px3, py3, idx3);
+                }
             }
-            else if (scalr_data == FORCE){
-                float force0 = 100*sqrt(fx[idx0]*fx[idx0]+fy[idx0]*fy[idx0]);
-                float force1 = 100*sqrt(fx[idx1]*fx[idx1]+fy[idx1]*fy[idx1]);
-                float force2 = 100*sqrt(fx[idx2]*fx[idx2]+fy[idx2]*fy[idx2]);
-                float force3 = 100*sqrt(fx[idx3]*fx[idx3]+fy[idx3]*fy[idx3]);
-                
-                set_colormap(force0);    glVertex2f(px0, py0);
-                set_colormap(force1);    glVertex2f(px1, py1);
-                set_colormap(force2);    glVertex2f(px2, py2);
-                
-                set_colormap(force0);    glVertex2f(px0, py0);
-                set_colormap(force2);    glVertex2f(px2, py2);
-                set_colormap(force3);    glVertex2f(px3, py3);
+            if(draw_slice){
+                //write here
             }
+            
         }
     }
-        glEnd();
+    if(draw_smoke){
         draw_color_bar_scalar();
         dispBarValScala();
     }
-
-    if (draw_vecs){
-      glBegin(GL_LINES);                //draw velocities
-      for (i = 0; i < DIM; i++)
-        for (j = 0; j < DIM; j++){
-          idx = (j * DIM) + i;
-          float val_mag = 0;
-            
-          if (vect_data== VELO){
-                if (glyph == hedge) {
-                    if (j % 5==0 && i % 5==0){
-                        val_mag = sqrt(vx[idx] * vx[idx] + vy[idx] * vy[idx]);
-                        set_colormap_vector(100*val_mag);
-                        glVertex2f(wn + (fftw_real)i * wn, hn + (fftw_real)j * hn);
-                        glVertex2f((wn + (fftw_real)i * wn) + vec_scale * vx[idx], (hn + (fftw_real)j * hn) + vec_scale * vy[idx]);
-                    }
-            }else if (glyph == arrow){
-                    if (j % 2==0 && i % 2==0){
-                        float x1 = wn+(fftw_real)i * wn;
-                        float y1 = hn+(fftw_real)j * hn;
-                        float x2 = (wn + (fftw_real)i * wn) + vec_scale * vx[idx];
-                        float y2 = (hn + (fftw_real)j * hn) + vec_scale * vy[idx];
-                        float vec_vx = x1 - x2;
-                        float vec_vy = y1 - y2;
-                        float len = len2DVector(vec_vx, vec_vy);
-//                        drawArrow(x1, x2, y1, y2, len/15);
-//                        drawAxes(x1, x2, y1, y2, len/15);
-                        draw3D(x1, x2, y1, y2, len/10);
-                        
-                    }
-            }else if (glyph == triangle){
-                    if (j % 4==0 && i % 4==0){
-                        val_mag = sqrt(vx[idx] * vx[idx] + vy[idx] * vy[idx]);
-                        glBegin(GL_TRIANGLE_STRIP);
-                        set_colormap_vector(100*val_mag);
-                        int scale = 300;
-                        glVertex2f((fftw_real)i*hn + scale * vy[idx], (fftw_real)j*wn - scale * vx[idx]);
-                        glVertex2f((fftw_real)i*hn - scale * vy[idx], (fftw_real)j*wn + scale * vx[idx]);
-                        glVertex2f((fftw_real)i*wn + vec_scale * vx[idx], (fftw_real)j*hn + vec_scale * vy[idx]);
-                        glEnd();
-                        glFlush();
-                    }
-                }
-                else if (glyphs == "3D"){
-                    
-                    
-                }
-        }else if (vect_data== FORCE){
-                if (glyph == hedge) {
-                        val_mag = sqrt(fx[idx] * fx[idx] + fy[idx] * fy[idx]);
-                        set_colormap_vector(100*val_mag);
-                        glVertex2f(wn + (fftw_real)i * wn, hn + (fftw_real)j * hn);
-                        glVertex2f((wn + (fftw_real)i * wn) + vec_scale * fx[idx], (hn + (fftw_real)j * hn) + vec_scale * fy[idx]);
-                
-                }else if (glyph == arrow){
-                    if (j % 5==0 && i % 5==0){
-                        float x1 = wn+(fftw_real)i * wn;
-                        float y1 = hn+(fftw_real)j * hn;
-                        float x2 = (wn + (fftw_real)i * wn) + vec_scale * fx[idx];
-                        float y2 = (hn + (fftw_real)j * hn) + vec_scale * fy[idx];
-                        float vec_vx = x1 - x2;
-                        float vec_vy = y1 - y2;
-                        float len = len2DVector(vec_vx, vec_vy);
-                        drawArrow(x1, x2, y1, y2, len/15);
-//                        drawAxes(x1, x2, y1, y2, len/15);
-                    }
-                }else if (glyph == triangle){
-                    glBegin(GL_TRIANGLE_STRIP);
-                    val_mag = sqrt(fx[idx] * fx[idx] + fy[idx] * fy[idx]);
-                    set_colormap_vector(100*val_mag);
-                    int scale = 300;
-                    glVertex2f((fftw_real)i*hn + scale * fy[idx], (fftw_real)j*wn - scale * fx[idx]);
-                    glVertex2f((fftw_real)i*hn - scale * fy[idx], (fftw_real)j*wn + scale * fx[idx]);
-                    glVertex2f((fftw_real)i*wn + vec_scale * fx[idx], (fftw_real)j*hn + vec_scale * fy[idx]);
-                    glEnd();
-                    glFlush();
-                }
-                else if (glyphs == "3D"){
-                    
-                }
-                
-            }
-        }
-        glEnd();
+    
+    if(draw_vecs){
         draw_color_bar_vector();
         dispBarValVector();
     }
-    
-    
-// ============= gradient ====================
-    
     if(draw_gradient){
-        float px0,py0,px1,py1,px2,py2,px3,py3;
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-//        glBegin(GL_LINES);
-//            glBegin(GL_TRIANGLE_STRIP);
-            for (i = 0; i < DIM; i++)
-                for (j = 0; j < DIM; j++){
-                    idx = (j * DIM) + i;
-                    px0  = wn + (fftw_real)i * wn;
-                    py0  = hn + (fftw_real)j * hn;
-                    idx0 = (j * DIM) + i;
-                    
-                    px1  = wn + (fftw_real)i * wn;
-                    py1  = hn + (fftw_real)(j + 1) * hn;
-                    idx1 = ((j + 1) * DIM) + i;
-                    
-                    px2  = wn + (fftw_real)(i + 1) * wn;
-                    py2  = hn + (fftw_real)(j + 1) * hn;
-                    idx2 = ((j + 1) * DIM) + (i + 1);
-                    
-                    px3  = wn + (fftw_real)(i + 1) * wn;
-                    py3  = hn + (fftw_real)j * hn;
-                    idx3 = (j * DIM) + (i + 1);
-                    
-                    if(gradient_col==0){     //density
-                        if (j % 2==0 && i % 2==0){
-                            float px = 0.5*(px0+px2);
-                            float py = 0.5*(py0+py2);
-                            float dfx = 0.5*(rho[idx1]-rho[idx0])/wn + 0.5*(rho[idx2]-rho[idx3])/wn;
-                            float dfy = 0.5*(rho[idx3]-rho[idx0])/hn + 0.5*(rho[idx2]-rho[idx1])/hn;
-                            float length = len2DVector(dfx, dfy);
-                            int scale = 48;
-                            int triscale = 8;
-//                            glBegin(GL_LINES);
-//                            set_colormap_gradient(10*length);
-//                            glVertex2f(px, py);
-//                            glVertex2f(px + scale * dfx, py + scale*dfy);
-//                            glBegin(GL_TRIANGLE_STRIP);
-                            glBegin(GL_TRIANGLES);
-                            set_colormap_gradient(100*length);
-                            glVertex2f(px + scale * dfx, py + scale * dfy);
-                            glVertex2f(px + triscale * dfy, py - triscale * dfx);
-                            glVertex2f(px - triscale * dfy, py + triscale * dfx);
-                        }
-                        
-                    }else if(gradient_col == 1){
-                        if (j % 2==0 && i % 2==0){
-                        float px = 0.5*(px2+px0);
-                        float py = 0.5*(py0+py2);
-                        float mag_v0 = len2DVector(vx[idx0], vy[idx0]);
-                        float mag_v1 = len2DVector(vx[idx1], vy[idx1]);
-                        float mag_v2 = len2DVector(vx[idx2], vy[idx2]);
-                        float mag_v3 = len2DVector(vx[idx3], vy[idx3]);
-                        float dfx = 0.5*(mag_v1-mag_v0)/wn + 0.5*(mag_v2-mag_v3)/wn;
-                        float dfy = 0.5*(mag_v3-mag_v0)/hn + 0.5*(mag_v2-mag_v1)/hn;
-                        float length = len2DVector(dfx, dfy);
-                        int scale = 10000;
-                        int triscale = 1000;
-//                        glBegin(GL_LINES);
-//                        set_colormap_gradient(1000*length);
-//                        glVertex2f(px, py);
-//                        glVertex2f(px + scale * dfx, py + scale*dfy);
-                        glBegin(GL_TRIANGLES);
-                        set_colormap_gradient(1000*length);
-                        glVertex2f(px + scale * dfx, py + scale*dfy);
-                        glVertex2f(px + triscale*dfy, py - triscale*dfx);
-                        glVertex2f(px - triscale*dfy, py + triscale*dfx);
-//                            glVertex2f((fftw_real)i*hn + scale * dfy, (fftw_real)j*wn - scale * dfx);
-//                            glVertex2f((fftw_real)i*hn - scale * dfy, (fftw_real)j*wn + scale * dfx);
-//                            glVertex2f((fftw_real)i*wn + triscale * dfx, (fftw_real)j*hn + triscale * dfy);
-                        }
-        }
-                    
-        }
-        glEnd();
     }
-   
     if(draw_streamline){
-        if (has_click){
-            stepStreamLine(mouse_px, mouse_py, 200, 0);
-        }
     }
-    
     if(draw_slice){
         //write here
     }
 }
+
+    
 
 
 //------ INTERACTION CODE STARTS HERE -----------------------------------------------------------------
@@ -1439,7 +1419,7 @@ int main(int argc, char **argv)
     new GLUI_RadioButton(radio5, "3D Arrows");
     
 // Gradient panel
-    obj_panel4 = new GLUI_Rollout(glui, "Gradient Panel", false);
+    obj_panel4 = new GLUI_Rollout(glui, "Gradient Panel", true);
     new GLUI_Checkbox(obj_panel4, "Gradient", &draw_gradient);
     panel4_1 = new GLUI_Panel(obj_panel4, "Dataset", true);
     radio_grad = new GLUI_RadioGroup(panel4_1, &gradient_col);
