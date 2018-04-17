@@ -38,9 +38,10 @@ int   color_dir = 0;            //use direction color-coding or not
 float vec_scale = 1000;            //scaling of hedgehogs
 int   draw_smoke = 0;           //draw the smoke or not
 int   draw_vecs = 0;            //draw the vector field or not
-int draw_gradient=0;
+int draw_gradient = 0;
 int draw_streamline=0;
 int draw_slice=0;
+int draw_surface = 0;
 const int COLOR_BLACKWHITE=0;   //different types of color mapping: black-and-white, rainbow, banded
 const int COLOR_RAINBOW=1;
 const int COLOR_BANDS=2;
@@ -80,11 +81,11 @@ float hue = 0;
 float saturation = 0;
 
 float col[6][3] ={{1,0,0},  // red
-                          {0,1,0},  // green
-                          {0,0,1},  // blue
-                          {1,1,0},  // yellow
-                          {0,1,1},  // cyan
-                          {1,0,1}}; // purple;
+    {0,1,0},  // green
+    {0,0,1},  // blue
+    {1,1,0},  // yellow
+    {0,1,1},  // cyan
+    {1,0,1}}; // purple;
 const int hh = 20;
 
 int main_window;
@@ -105,11 +106,22 @@ float gradient_size_velo = 5;
 float mouse_px;
 float mouse_py;
 bool has_click = false;
+bool has_put = true;
+bool first_surface = false;
+int surface_line_n = 2;
+int surface_put_n = 0;
+float *seeds_x;
+float *seeds_y;
 float alpha=1;
 int n_slice = 20;
 int latest_index = 0;
 float glOrtho_xmin, glOrtho_xmax, glOrtho_ymin, glOrtho_ymax;
 int glyph_num = 10;
+float global_alpha = 1;
+float camera_z = 68;
+float camera_near = 0.1;
+float camera_far = 100;
+float camera_fovy = 45;
 
 //------ SIMULATION CODE STARTS HERE -----------------------------------------------------------------
 
@@ -118,7 +130,7 @@ int glyph_num = 10;
 //                 for compatibility with the FFTW numerical library.
 void init_simulation(int n){
     int i; size_t dim;
-
+    
     dim     = n * 2*(n/2+1)*sizeof(fftw_real);        //Allocate data structures
     vx       = (fftw_real*) malloc(dim);
     vy       = (fftw_real*) malloc(dim);
@@ -131,7 +143,7 @@ void init_simulation(int n){
     rho0    = (fftw_real*) malloc(dim);
     plan_rc = rfftw2d_create_plan(n, n, FFTW_REAL_TO_COMPLEX, FFTW_IN_PLACE);
     plan_cr = rfftw2d_create_plan(n, n, FFTW_COMPLEX_TO_REAL, FFTW_IN_PLACE);
-
+    
     for (i = 0; i < n * n; i++)                      //Initialize data structures to 0
     { vx[i] = vy[i] = vx0[i] = vy0[i] = fx[i] = fy[i] = rho[i] = rho0[i] = 0.0f; }
 }
@@ -154,69 +166,69 @@ float max(float x, float y)
 void solve(int n, fftw_real* vx, fftw_real* vy, fftw_real* vx0, fftw_real* vy0, fftw_real visc, fftw_real dt){
     fftw_real x, y, x0, y0, f, r, U[2], V[2], s, t;
     int i, j, i0, j0, i1, j1;
-
+    
     for (i=0;i<n*n;i++){
         vx[i] += dt*vx0[i];
         vx0[i] = vx[i];
         vy[i] += dt*vy0[i];
         vy0[i] = vy[i];
     }
-
+    
     for ( x=0.5f/n,i=0 ; i<n ; i++,x+=1.0f/n )
-       for ( y=0.5f/n,j=0 ; j<n ; j++,y+=1.0f/n ){
-          x0 = n*(x-dt*vx0[i+n*j])-0.5f;
-          y0 = n*(y-dt*vy0[i+n*j])-0.5f;
-          i0 = clamp(x0); s = x0-i0;
-          i0 = (n+(i0%n))%n;
-          i1 = (i0+1)%n;
-          j0 = clamp(y0); t = y0-j0;
-          j0 = (n+(j0%n))%n;
-          j1 = (j0+1)%n;
-          vx[i+n*j] = (1-s)*((1-t)*vx0[i0+n*j0]+t*vx0[i0+n*j1])+s*((1-t)*vx0[i1+n*j0]+t*vx0[i1+n*j1]);
-          vy[i+n*j] = (1-s)*((1-t)*vy0[i0+n*j0]+t*vy0[i0+n*j1])+s*((1-t)*vy0[i1+n*j0]+t*vy0[i1+n*j1]);
-       }
-
+        for ( y=0.5f/n,j=0 ; j<n ; j++,y+=1.0f/n ){
+            x0 = n*(x-dt*vx0[i+n*j])-0.5f;
+            y0 = n*(y-dt*vy0[i+n*j])-0.5f;
+            i0 = clamp(x0); s = x0-i0;
+            i0 = (n+(i0%n))%n;
+            i1 = (i0+1)%n;
+            j0 = clamp(y0); t = y0-j0;
+            j0 = (n+(j0%n))%n;
+            j1 = (j0+1)%n;
+            vx[i+n*j] = (1-s)*((1-t)*vx0[i0+n*j0]+t*vx0[i0+n*j1])+s*((1-t)*vx0[i1+n*j0]+t*vx0[i1+n*j1]);
+            vy[i+n*j] = (1-s)*((1-t)*vy0[i0+n*j0]+t*vy0[i0+n*j1])+s*((1-t)*vy0[i1+n*j0]+t*vy0[i1+n*j1]);
+        }
+    
     for(i=0; i<n; i++)
-      for(j=0; j<n; j++)
-      {  vx0[i+(n+2)*j] = vx[i+n*j]; vy0[i+(n+2)*j] = vy[i+n*j]; }
-
+        for(j=0; j<n; j++)
+        {  vx0[i+(n+2)*j] = vx[i+n*j]; vy0[i+(n+2)*j] = vy[i+n*j]; }
+    
     FFT(1,vx0);
     FFT(1,vy0);
-
+    
     for (i=0;i<=n;i+=2){
-       x = 0.5f*i;
-       for (j=0;j<n;j++){
-          y = j<=n/2 ? (fftw_real)j : (fftw_real)j-n;
-          r = x*x+y*y;
-          if ( r==0.0f ) continue;
-          f = (fftw_real)exp(-r*dt*visc);
-          U[0] = vx0[i  +(n+2)*j]; V[0] = vy0[i  +(n+2)*j];
-          U[1] = vx0[i+1+(n+2)*j]; V[1] = vy0[i+1+(n+2)*j];
-
-          vx0[i  +(n+2)*j] = f*((1-x*x/r)*U[0]     -x*y/r *V[0]);
-          vx0[i+1+(n+2)*j] = f*((1-x*x/r)*U[1]     -x*y/r *V[1]);
-          vy0[i+  (n+2)*j] = f*(  -y*x/r *U[0] + (1-y*y/r)*V[0]);
-          vy0[i+1+(n+2)*j] = f*(  -y*x/r *U[1] + (1-y*y/r)*V[1]);
-       }
+        x = 0.5f*i;
+        for (j=0;j<n;j++){
+            y = j<=n/2 ? (fftw_real)j : (fftw_real)j-n;
+            r = x*x+y*y;
+            if ( r==0.0f ) continue;
+            f = (fftw_real)exp(-r*dt*visc);
+            U[0] = vx0[i  +(n+2)*j]; V[0] = vy0[i  +(n+2)*j];
+            U[1] = vx0[i+1+(n+2)*j]; V[1] = vy0[i+1+(n+2)*j];
+            
+            vx0[i  +(n+2)*j] = f*((1-x*x/r)*U[0]     -x*y/r *V[0]);
+            vx0[i+1+(n+2)*j] = f*((1-x*x/r)*U[1]     -x*y/r *V[1]);
+            vy0[i+  (n+2)*j] = f*(  -y*x/r *U[0] + (1-y*y/r)*V[0]);
+            vy0[i+1+(n+2)*j] = f*(  -y*x/r *U[1] + (1-y*y/r)*V[1]);
+        }
     }
-
+    
     FFT(-1,vx0);
     FFT(-1,vy0);
-
+    
     f = 1.0/(n*n);
-     for (i=0;i<n;i++)
-       for (j=0;j<n;j++){
-           vx[i+n*j] = f*vx0[i+(n+2)*j];
-           vy[i+n*j] = f*vy0[i+(n+2)*j];
-           
-           float v_magnitude;
-           v_magnitude = 100*sqrt(vx[i+n*j] * vx[i+n*j] + vy[i+n*j] * vy[i+n*j]);
-           if (v_magnitude > v_max){
-               v_max = v_magnitude;
-           }else if (v_magnitude <= v_min){
-               v_min = v_magnitude;
-           }
-       }
+    for (i=0;i<n;i++)
+        for (j=0;j<n;j++){
+            vx[i+n*j] = f*vx0[i+(n+2)*j];
+            vy[i+n*j] = f*vy0[i+(n+2)*j];
+            
+            float v_magnitude;
+            v_magnitude = 100*sqrt(vx[i+n*j] * vx[i+n*j] + vy[i+n*j] * vy[i+n*j]);
+            if (v_magnitude > v_max){
+                v_max = v_magnitude;
+            }else if (v_magnitude <= v_min){
+                v_min = v_magnitude;
+            }
+        }
 }
 
 
@@ -225,7 +237,7 @@ void solve(int n, fftw_real* vx, fftw_real* vy, fftw_real* vx0, fftw_real* vy0, 
 void diffuse_matter(int n, fftw_real *vx, fftw_real *vy, fftw_real *rho, fftw_real *rho0, fftw_real dt){
     fftw_real x, y, x0, y0, s, t;
     int i, j, i0, j0, i1, j1;
-
+    
     for ( x=0.5f/n,i=0 ; i<n ; i++,x+=1.0f/n )
         for ( y=0.5f/n,j=0 ; j<n ; j++,y+=1.0f/n ){
             x0 = n*(x-dt*vx[i+n*j])-0.5f;
@@ -334,13 +346,13 @@ void heatmap(float s_value,float* R,float* G,float* B){
 }
 
 void self_rainbow(float s_value,float* R,float* G,float* B){
-   const float dx=0.8f;
-   s_value = (s_value < s_min)? s_min : ( s_value > s_max)? s_max : s_value;    //clamp scalar value in [min, max]
-   s_value = (6-2*dx)*s_value+dx;
-   
-   *R = max(0.0f,(3-(float)fabs(s_value-4)-(float)fabs(s_value-5))/2);
-   *G = max(0.0f,(4-(float)fabs(s_value-2)-(float)fabs(s_value-4))/2);
-   *B = max(0.0f,(3-(float)fabs(s_value-1)-(float)fabs(s_value-2))/2);
+    const float dx=0.8f;
+    s_value = (s_value < s_min)? s_min : ( s_value > s_max)? s_max : s_value;    //clamp scalar value in [min, max]
+    s_value = (6-2*dx)*s_value+dx;
+    
+    *R = max(0.0f,(3-(float)fabs(s_value-4)-(float)fabs(s_value-5))/2);
+    *G = max(0.0f,(4-(float)fabs(s_value-2)-(float)fabs(s_value-4))/2);
+    *B = max(0.0f,(3-(float)fabs(s_value-1)-(float)fabs(s_value-2))/2);
 }
 
 float clamp_v(float v_value, float clamp_max, float clamp_min){
@@ -435,28 +447,28 @@ Rgb hsv2rgb(Hsl hsv, float H, float S){
 
 //set_colormap: Sets three different types of colormaps
 void set_colormap(float v_value){
-   float R,G,B, alpha = 1;
+    float R,G,B, alpha=1;
     if (is_scale){
         v_value = scale(v_value);
         if(draw_slice){
-            alpha = v_value;
+            alpha = v_value * global_alpha;
         }
     }
-   if (scalar_col==COLOR_BLACKWHITE){
-       R = G = B = v_value;
-   }else if (scalar_col==COLOR_RAINBOW){
-       v_value *= NLEVELS; v_value = (int)(v_value); v_value/= NLEVELS;
-       heatmap(v_value,&R,&G,&B);
-   }else if (scalar_col==COLOR_BANDS){
+    if (scalar_col==COLOR_BLACKWHITE){
+        R = G = B = v_value;
+    }else if (scalar_col==COLOR_RAINBOW){
+        v_value *= NLEVELS; v_value = (int)(v_value); v_value/= NLEVELS;
+        heatmap(v_value,&R,&G,&B);
+    }else if (scalar_col==COLOR_BANDS){
         v_value *= NLEVELS; v_value = (int)(v_value); v_value/= NLEVELS;
         self_rainbow(v_value,&R,&G,&B);
     }
-
+    
     Rgb color = {R,G,B};
     if(changeHS == 1){
-            Hsl new_hsv = rgb2hsv(color);
-            Rgb new_color = hsv2rgb(new_hsv, hue, saturation);
-            glColor4f(new_color.r,new_color.g,new_color.b, alpha);
+        Hsl new_hsv = rgb2hsv(color);
+        Rgb new_color = hsv2rgb(new_hsv, hue, saturation);
+        glColor4f(new_color.r,new_color.g,new_color.b, alpha);
     }else{
         glColor4f(color.r, color.g, color.b, alpha);
     }
@@ -469,7 +481,7 @@ void set_colormap_vector(float v_value){
     if (is_scale){
         v_value = scale(v_value);
         if(draw_slice){
-            alpha = v_value;
+            alpha = v_value * global_alpha;
         }
     }
     if (vector_col==COLOR_BLACKWHITE){
@@ -498,7 +510,7 @@ void set_colormap_gradient(float v_value){
     if (is_scale){
         v_value = scale(v_value);
         if(draw_slice){
-            alpha = v_value;
+            alpha = v_value * global_alpha;
         }
     }
     if (gradient_map==COLOR_BLACKWHITE){
@@ -530,15 +542,15 @@ void direction_to_color(float x, float y, int method)
     float r,g,b,f;
     if (method)
     {
-      f = atan2(y,x) / 3.1415927 + 1;
-      r = f;
-      if(r > 1) r = 2 - r;
-      g = f + .66667;
-      if(g > 2) g -= 2;
-      if(g > 1) g = 2 - g;
-      b = f + 2 * .66667;
-      if(b > 2) b -= 2;
-      if(b > 1) b = 2 - b;
+        f = atan2(y,x) / 3.1415927 + 1;
+        r = f;
+        if(r > 1) r = 2 - r;
+        g = f + .66667;
+        if(g > 2) g -= 2;
+        if(g > 1) g = 2 - g;
+        b = f + 2 * .66667;
+        if(b > 2) b -= 2;
+        if(b > 1) b = 2 - b;
     }
     else
     { r = g = b = 1; }
@@ -793,13 +805,13 @@ void drawArrow(float vx1, float vx2, float vy1, float vy2,float vy){
     glPushMatrix();
     glTranslatef(vx1,vy1, 0);
     glRotated(angle,0,0,1);
-
+    
     float len = len2DVector(vec_vx, vec_vy);
     GLUquadricObj *quadObj;
     int D = 5;
     
     glTranslatef(0,0,len-4*D);
-
+    
     quadObj = gluNewQuadric ();
     gluQuadricDrawStyle (quadObj, GLU_FILL);
     gluQuadricNormals (quadObj, GLU_SMOOTH);
@@ -848,8 +860,8 @@ void draw3D(float vx1, float vx2, float vy1, float vy2, float vy){
         glRotated(180,1.,0.,0.);
     }
     
-//    float angle = angle2DVector(vx1, vx2, vy1, vy2);
-//    glRotated(angle,0,0,1);
+    //    float angle = angle2DVector(vx1, vx2, vy1, vy2);
+    //    glRotated(angle,0,0,1);
     
     GLUquadricObj *quadObj;
     int D = 5;
@@ -869,13 +881,13 @@ void draw3D(float vx1, float vx2, float vy1, float vy2, float vy){
     gluDeleteQuadric(quadObj);
     
     glTranslatef(0,0,-len+4*D);
-
+    
     quadObj = gluNewQuadric ();
     gluQuadricDrawStyle (quadObj, GLU_FILL);
     gluQuadricNormals (quadObj, GLU_SMOOTH);
     gluCylinder(quadObj, D, 0, len-4*len, 16, 1);
     gluDeleteQuadric(quadObj);
-
+    
     quadObj = gluNewQuadric ();
     gluQuadricDrawStyle (quadObj, GLU_FILL);
     gluQuadricNormals (quadObj, GLU_SMOOTH);
@@ -890,23 +902,23 @@ void draw3D(float vx1, float vx2, float vy1, float vy2, float vy){
 
 void drawAxes(float vx1, float vx2, float vy1, float vy2,float vy)
 {
-//    float len = len2DVector(vx1, vx2, vy1, vy2);
+    //    float len = len2DVector(vx1, vx2, vy1, vy2);
     float len = 10;
     glPushMatrix();
     glTranslatef(len,0,0);
-//    drawArrow(vx1, vx2, vy1, vy2, vy);
+    //    drawArrow(vx1, vx2, vy1, vy2, vy);
     draw3D(vx1, vx2, vy1, vy2, vy);
     glPopMatrix();
     
     glPushMatrix();
     glTranslatef(0,len,0);
-//    drawArrow(vx1, vx2, vy1, vy2, vy);
+    //    drawArrow(vx1, vx2, vy1, vy2, vy);
     draw3D(vx1, vx2, vy1, vy2, vy);
     glPopMatrix();
     
     glPushMatrix();
     glTranslatef(0,0,len);
-//    drawArrow(vx1, vx2, vy1, vy2, vy);
+    //    drawArrow(vx1, vx2, vy1, vy2, vy);
     draw3D(vx1, vx2, vy1, vy2, vy);
     glPopMatrix();
 }
@@ -917,12 +929,19 @@ void drawSmoke(float &px0, float &py0, int &idx0,
                float &px1, float &py1, int &idx1,
                float &px2, float &py2, int &idx2,
                float &px3, float &py3, int &idx3, int k){
-    float z = -k/n_slice;
+
+	glColor3f(0.4f, 0.6f, 1.0f);     // Green
+	glVertex3f(-1.0f, 1.0f, -1.0f);
+	glVertex3f(-1.1f, 1.2f, -1.0f);
+	glVertex3f(1.2f, -1.1f, -1.0f);
+
+    float z = -k;
+//    float z = -3;
     if(scalr_data == RHO){
         set_colormap(slice_rho[idx0]);    glVertex3f(px0, py0, z);
         set_colormap(slice_rho[idx1]);    glVertex3f(px1, py1, z);
         set_colormap(slice_rho[idx2]);    glVertex3f(px2, py2, z);
-
+        
         set_colormap(slice_rho[idx0]);    glVertex3f(px0, py0, z);
         set_colormap(slice_rho[idx2]);    glVertex3f(px2, py2, z);
         set_colormap(slice_rho[idx3]);    glVertex3f(px3, py3, z);
@@ -932,11 +951,11 @@ void drawSmoke(float &px0, float &py0, int &idx0,
         float vel1 = 100*sqrt(slice_vx[idx1]*slice_vx[idx1]+slice_vy[idx1]*slice_vy[idx1]);
         float vel2 = 100*sqrt(slice_vx[idx2]*slice_vx[idx2]+slice_vy[idx2]*slice_vy[idx2]);
         float vel3 = 100*sqrt(slice_vx[idx3]*slice_vx[idx3]+slice_vy[idx3]*slice_vy[idx3]);
-
+        
         set_colormap(vel0);    glVertex3f(px0, py0, z);
         set_colormap(vel1);    glVertex3f(px1, py1, z);
         set_colormap(vel2);    glVertex3f(px2, py2, z);
-
+        
         set_colormap(vel0);    glVertex3f(px0, py0, z);
         set_colormap(vel2);    glVertex3f(px2, py2, z);
         set_colormap(vel3);    glVertex3f(px3, py3, z);
@@ -946,23 +965,23 @@ void drawSmoke(float &px0, float &py0, int &idx0,
         float force1 = 100*sqrt(slice_fx[idx1]*slice_fx[idx1]+slice_fy[idx1]*slice_fy[idx1]);
         float force2 = 100*sqrt(slice_fx[idx2]*slice_fx[idx2]+slice_fy[idx2]*slice_fy[idx2]);
         float force3 = 100*sqrt(slice_fx[idx3]*slice_fx[idx3]+slice_fy[idx3]*slice_fy[idx3]);
-
+        
         set_colormap(force0);    glVertex3f(px0, py0, z);
         set_colormap(force1);    glVertex3f(px1, py1, z);
         set_colormap(force2);    glVertex3f(px2, py2, z);
-
+        
         set_colormap(force0);    glVertex3f(px0, py0, z);
         set_colormap(force2);    glVertex3f(px2, py2, z);
         set_colormap(force3);    glVertex3f(px3, py3, z);
     }
-
+    
 }
 
 
 void drawVector(float &x_diff, float &y_diff, float &px, float &py,
                 float &px0, float &py0, int &idx0, float &px1, float &py1, int &idx1,
                 float &px2, float &py2, int &idx2, float &px3, float &py3, int &idx3, int &k){
-//    float z = -k/n_slice;
+    //    float z = -k/n_slice;
     //draw velocities
     if (vect_data== VELO){
         float vx_top = (slice_vx[idx3] - slice_vx[idx0])*x_diff + slice_vx[idx0];
@@ -984,16 +1003,16 @@ void drawVector(float &x_diff, float &y_diff, float &px, float &py,
             
         }else if (glyph == arrow){
             
-//                float x1 = wn+(fftw_real)i * wn;
-//                float y1 = hn+(fftw_real)j * hn;
-//                float x2 = (wn + (fftw_real)i * wn) + vec_scale * vx[idx];
-//                float y2 = (hn + (fftw_real)j * hn) + vec_scale * vy[idx];
-//                float vec_vx = x1 - x2;
-//                float vec_vy = y1 - y2;
-//                float len = len2DVector(vec_vx, vec_vy);
-////                        drawArrow(x1, x2, y1, y2, len/15);
-////                        drawAxes(x1, x2, y1, y2, len/15);
-//                draw3D(x1, x2, y1, y2, len/10);
+            //                float x1 = wn+(fftw_real)i * wn;
+            //                float y1 = hn+(fftw_real)j * hn;
+            //                float x2 = (wn + (fftw_real)i * wn) + vec_scale * vx[idx];
+            //                float y2 = (hn + (fftw_real)j * hn) + vec_scale * vy[idx];
+            //                float vec_vx = x1 - x2;
+            //                float vec_vy = y1 - y2;
+            //                float len = len2DVector(vec_vx, vec_vy);
+            ////                        drawArrow(x1, x2, y1, y2, len/15);
+            ////                        drawAxes(x1, x2, y1, y2, len/15);
+            //                draw3D(x1, x2, y1, y2, len/10);
             
         }else if (glyph == triangle){
             glBegin(GL_TRIANGLES);
@@ -1032,17 +1051,17 @@ void drawVector(float &x_diff, float &y_diff, float &px, float &py,
             set_colormap_vector(100*val_mag);
             glVertex2f(px, py);
             glVertex2f(px + vec_scale *px_f*scale_mag, py + vec_scale *py_f*scale_mag);
-
+            
         }else if (glyph == arrow){
-//                float x1 = wn+(fftw_real)i * wn;
-//                float y1 = hn+(fftw_real)j * hn;
-//                float x2 = (wn + (fftw_real)i * wn) + vec_scale * fx[idx];
-//                float y2 = (hn + (fftw_real)j * hn) + vec_scale * fy[idx];
-//                float vec_vx = x1 - x2;
-//                float vec_vy = y1 - y2;
-//                float len = len2DVector(vec_vx, vec_vy);
-//                drawArrow(x1, x2, y1, y2, len/15);
-////                        drawAxes(x1, x2, y1, y2, len/15);
+            //                float x1 = wn+(fftw_real)i * wn;
+            //                float y1 = hn+(fftw_real)j * hn;
+            //                float x2 = (wn + (fftw_real)i * wn) + vec_scale * fx[idx];
+            //                float y2 = (hn + (fftw_real)j * hn) + vec_scale * fy[idx];
+            //                float vec_vx = x1 - x2;
+            //                float vec_vy = y1 - y2;
+            //                float len = len2DVector(vec_vx, vec_vy);
+            //                drawArrow(x1, x2, y1, y2, len/15);
+            ////                        drawAxes(x1, x2, y1, y2, len/15);
         }else if (glyph == triangle){
             glBegin(GL_TRIANGLES);
             float val_mag = sqrt(px_f * px_f + py_f * py_f);
@@ -1058,7 +1077,7 @@ void drawVector(float &x_diff, float &y_diff, float &px, float &py,
             glVertex2f(px - scale * py_f, py + scale * px_f);
         }
         else if (glyphs == "3D"){
-//....
+            //....
         }
     }
     glEnd();
@@ -1080,7 +1099,7 @@ void drawGradient(float &x_diff, float &y_diff, float &px, float &py,
         dfy = dfy * scale_length;
         int scale = 8;
         int triscale = 1;
-
+        
         glBegin(GL_TRIANGLES);
         set_colormap_gradient(new_length);
         glVertex3f(px + scale * dfx, py + scale * dfy, z);
@@ -1101,7 +1120,7 @@ void drawGradient(float &x_diff, float &y_diff, float &px, float &py,
         dfy = dfy * scale_length;
         int scale = 20;
         int triscale = 4;
-
+        
         glBegin(GL_TRIANGLES);
         set_colormap_gradient(new_length);
         glVertex3f(px + scale * dfx, py + scale * dfy, z);
@@ -1109,7 +1128,7 @@ void drawGradient(float &x_diff, float &y_diff, float &px, float &py,
         glVertex3f(px - triscale * dfy, py + triscale * dfx, z);
     }
     glEnd();
-
+    
 }
 
 void stepStreamLine(float px, float py, int step, int current_step){
@@ -1176,6 +1195,18 @@ void stepStreamLine(float px, float py, int step, int current_step){
     glEnd();
 }
 
+void drawSurfaceSeed(){
+    if(first_surface){
+        glBegin(GL_LINE_STRIP);
+        for(int i = 0; i < surface_line_n; i++){
+            float px = seeds_x[i];
+            float py = seeds_y[i];
+            glVertex2f(px, py);
+        }
+        glEnd();
+    }
+}
+
 void perspective(GLdouble fovy, GLdouble aspect, GLdouble zNear, GLdouble zFar)
 {
     GLdouble xmin, xmax, ymin, ymax;
@@ -1189,25 +1220,105 @@ void perspective(GLdouble fovy, GLdouble aspect, GLdouble zNear, GLdouble zFar)
 }
 
 void zoom(int zoom){
-//    glOrtho_xmin = -500 +((zoom-49)*100);
-//    glOrtho_xmax = winWidth + 500 + ((51-zoom)*100);
-//    glOrtho_ymin = -500 +((zoom-49)*100);
-//    glOrtho_ymax = winHeight + 500 + ((51-zoom)*100);
+    //    glOrtho_xmin = -500 +((zoom-49)*100);
+    //    glOrtho_xmax = winWidth + 500 + ((51-zoom)*100);
+    //    glOrtho_ymin = -500 +((zoom-49)*100);
+    //    glOrtho_ymax = winHeight + 500 + ((51-zoom)*100);
 }
 
-void viewing ( ) //Set up viewing ( see Section 2.6)
- {
-     glMatrixMode(GL_MODELVIEW) ; //1. Camera (modelview) transform
-     glLoadIdentity () ;
-     gluLookAt(0 ,0 ,5 ,0 ,0 ,0 ,0 ,1 ,0 ) ;
-//
-//     glMatrixMode (GL_PROJECTION) ; //2. Projection transform
-//     glLoadIdentity () ;
-//     float aspect = float (W )/H ;
-//     gluPerspective(fov ,aspect ,near ,far ) ;
-//
-//     glViewport (0 ,0 ,W ,H ) ;
+void viewing() //Set up viewing ( see Section 2.6)
+{
     
+    
+}
+void reset_viewing() //Set up viewing (see Section 2.6)
+{
+    
+}
+
+void test() {
+	glBegin(GL_QUADS);                // Begin drawing the color cube with 6 quads
+									  // Top face (y = 1.0f)
+									  // Define vertices in counter-clockwise (CCW) order with normal pointing out
+	glColor3f(0.0f, 1.0f, 0.0f);     // Green
+	glVertex3f(1.0f, 1.0f, -1.0f);
+	glVertex3f(-1.0f, 1.0f, -1.0f);
+	glVertex3f(-1.0f, 1.0f, 1.0f);
+	glVertex3f(1.0f, 1.0f, 1.0f);
+
+	// Bottom face (y = -1.0f)
+	glColor3f(1.0f, 0.5f, 0.0f);     // Orange
+	glVertex3f(1.0f, -1.0f, 1.0f);
+	glVertex3f(-1.0f, -1.0f, 1.0f);
+	glVertex3f(-1.0f, -1.0f, -1.0f);
+	glVertex3f(1.0f, -1.0f, -1.0f);
+
+	// Front face  (z = 1.0f)
+	glColor3f(1.0f, 0.0f, 0.0f);     // Red
+	glVertex3f(1.0f, 1.0f, 1.0f);
+	glVertex3f(-1.0f, 1.0f, 1.0f);
+	glVertex3f(-1.0f, -1.0f, 1.0f);
+	glVertex3f(1.0f, -1.0f, 1.0f);
+
+	// Back face (z = -1.0f)
+	glColor3f(1.0f, 1.0f, 0.0f);     // Yellow
+	glVertex3f(1.0f, -1.0f, -1.0f);
+	glVertex3f(-1.0f, -1.0f, -1.0f);
+	glVertex3f(-1.0f, 1.0f, -1.0f);
+	glVertex3f(1.0f, 1.0f, -1.0f);
+
+	// Left face (x = -1.0f)
+	glColor3f(0.0f, 0.0f, 1.0f);     // Blue
+	glVertex3f(-1.0f, 1.0f, 1.0f);
+	glVertex3f(-1.0f, 1.0f, -1.0f);
+	glVertex3f(-1.0f, -1.0f, -1.0f);
+	glVertex3f(-1.0f, -1.0f, 1.0f);
+
+	// Right face (x = 1.0f)
+	glColor3f(1.0f, 0.0f, 1.0f);     // Magenta
+	glVertex3f(1.0f, 1.0f, -1.0f);
+	glVertex3f(1.0f, 1.0f, 1.0f);
+	glVertex3f(1.0f, -1.0f, 1.0f);
+	glVertex3f(1.0f, -1.0f, -1.0f);
+	glEnd();  // End of drawing color-cube
+
+			  // Render a pyramid consists of 4 triangles
+	glLoadIdentity();                  // Reset the model-view matrix
+	glTranslatef(-1.5f, 0.0f, -6.0f);  // Move left and into the screen
+
+	glBegin(GL_TRIANGLES);           // Begin drawing the pyramid with 4 triangles
+									 // Front
+	glColor3f(1.0f, 0.0f, 0.0f);     // Red
+	glVertex3f(0.0f, 1.0f, 0.0f);
+	glColor3f(0.0f, 1.0f, 0.0f);     // Green
+	glVertex3f(-1.0f, -1.0f, 1.0f);
+	glColor3f(0.0f, 0.0f, 1.0f);     // Blue
+	glVertex3f(1.0f, -1.0f, 1.0f);
+
+	// Right
+	glColor3f(1.0f, 0.0f, 0.0f);     // Red
+	glVertex3f(0.0f, 1.0f, 0.0f);
+	glColor3f(0.0f, 0.0f, 1.0f);     // Blue
+	glVertex3f(1.0f, -1.0f, 1.0f);
+	glColor3f(0.0f, 1.0f, 0.0f);     // Green
+	glVertex3f(1.0f, -1.0f, -1.0f);
+
+	// Back
+	glColor3f(1.0f, 0.0f, 0.0f);     // Red
+	glVertex3f(0.0f, 1.0f, 0.0f);
+	glColor3f(0.0f, 1.0f, 0.0f);     // Green
+	glVertex3f(1.0f, -1.0f, -1.0f);
+	glColor3f(0.0f, 0.0f, 1.0f);     // Blue
+	glVertex3f(-1.0f, -1.0f, -1.0f);
+
+	// Left
+	glColor3f(1.0f, 0.0f, 0.0f);       // Red
+	glVertex3f(0.0f, 1.0f, 0.0f);
+	glColor3f(0.0f, 0.0f, 1.0f);       // Blue
+	glVertex3f(-1.0f, -1.0f, -1.0f);
+	glColor3f(0.0f, 1.0f, 0.0f);       // Green
+	glVertex3f(-1.0f, -1.0f, 1.0f);
+	glEnd();   // Done drawing the pyramid
 }
 
 void visualize(void){
@@ -1215,21 +1326,14 @@ void visualize(void){
     float px0,py0,px1,py1,px2,py2,px3,py3;
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-//    glClearColor(0, 0, 0, 0);
-//    glViewport(0,0,winWidth,winHeight);
-//    glMatrixMode(GL_PROJECTION);
-//    glLoadIdentity();
+    //    glClearColor(0, 0, 0, 0);
+    //    glViewport(0,0,winWidth,winHeight);
+    //    glMatrixMode(GL_PROJECTION);
+    //    glLoadIdentity();
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     int iteratingNumber = 1;
     int adjust = -1;
     if(draw_slice){
-//        glMatrixMode(GL_PROJECTION);
-////        glLoadIdentity();
-////        glOrtho(0, 500, 0, 500, 0, 50) ;
-//        GLdouble aspect = winWidth / (winHeight ? winHeight : 1);
-//        const GLdouble zNear = 1, zFar = 30, fov = -5;
-//        perspective(fov, aspect, zNear, zFar);
-//        viewing();
         iteratingNumber = n_slice;
     }else{
         iteratingNumber = 1;
@@ -1252,15 +1356,15 @@ void visualize(void){
                 px0  = wn + (fftw_real)i * wn;
                 py0  = hn + (fftw_real)j * hn;
                 idx0 = (j * DIM) + i + current_init_index;
-
+                
                 px1  = wn + (fftw_real)i * wn;
                 py1  = hn + (fftw_real)(j + 1) * hn;
                 idx1 = ((j + 1) * DIM) + i + current_init_index;
-
+                
                 px2  = wn + (fftw_real)(i + 1) * wn;
                 py2  = hn + (fftw_real)(j + 1) * hn;
                 idx2 = ((j + 1) * DIM) + (i + 1) + current_init_index;
-
+                
                 px3  = wn + (fftw_real)(i + 1) * wn;
                 py3  = hn + (fftw_real)j * hn;
                 idx3 = (j * DIM) + (i + 1) + current_init_index;
@@ -1271,17 +1375,19 @@ void visualize(void){
                               px2, py2, idx2, px3, py3, idx3, k);
                     glEnd();
                 }
-             
+                
                 if(draw_slice){
                     //write here
-    //                glEnable(GL_BLEND);
-    //                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    //                glClearColor(0, 0, 0, 0);
-    //                glViewport(0,0,winWidth,winHeight);
-    //                glMatrixMode(GL_PROJECTION);
-    //                glLoadIdentity();
+                    //                glEnable(GL_BLEND);
+                    //                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                    //                glClearColor(0, 0, 0, 0);
+                    //                glViewport(0,0,winWidth,winHeight);
+                    //                glMatrixMode(GL_PROJECTION);
+                    //                glLoadIdentity();
                 }
-                
+                if(draw_surface){
+                    //
+                }
             }
         }
         for(int m = 1; m <= glyph_num; m++){
@@ -1291,7 +1397,7 @@ void visualize(void){
                 
                 int i = (int)px/wn;
                 int j = (int)py/hn;
-          
+                
                 px0 = wn + (fftw_real)i * wn;
                 py0 = hn + (fftw_real)j * hn;
                 idx0 = (j * DIM) + i+current_init_index;
@@ -1340,9 +1446,13 @@ void visualize(void){
             stepStreamLine(mouse_px, mouse_py, 50, 0);
         }
     }
+    if(draw_surface){
+        drawSurfaceSeed();
+        //
+    }
 }
 
-    
+
 
 
 //------ INTERACTION CODE STARTS HERE -----------------------------------------------------------------
@@ -1364,26 +1474,109 @@ void myGlutIdle( void )
 //display: Handle window redrawing events. Simply delegates to visualize().
 void display(void)
 {
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
+	gluLookAt(10, 10, camera_z - 50, 10, 10, 0, 0, 1, 0);
+	glTranslatef(0.0f, 0.0f, -7.0f);
+	GLdouble aspect = (GLdouble)winWidth / (GLdouble)winHeight;
+	float fov = camera_fovy;
+	float near = camera_near;
+	float far = camera_far;
+	//glMatrixMode(GL_MODELVIEW); //1. Camera (modelview) transform
+	//glLoadIdentity();
+	//glViewport(0, 0, winWidth, winHeight); //3. View transform
+	//glMatrixMode(GL_PROJECTION);  // To operate on the Projection matrix
+	//glLoadIdentity();             // Reset
+	//								// Enable perspective projection with fovy, aspect, zNear and zFar
+	//gluPerspective(90.0f, aspect, 0.1f, 100.0f);
+
     visualize();
+	//test();
     glFlush();
     glutSwapBuffers();
+	
+
+	/*
+	if (draw_slice) {
+		printf("drawslice");
+		//glMatrixMode(GL_MODELVIEW); //1. Camera (modelview) transform
+		//glLoadIdentity();
+		//gluLookAt(0, 0, camera_z - 50, 0, 0, -1, 0, 1, 0);
+
+		//glMatrixMode(GL_PROJECTION);
+		//glLoadIdentity();
+		//glOrtho(0.0, (GLdouble)winWidth, 0.0, (GLdouble)winHeight, -1.0,1.0);
+
+
+		GLdouble aspect = (GLdouble)winWidth / (GLdouble)winHeight;
+		float fov = camera_fovy;
+		float near = camera_near;
+		float far = camera_far;
+		glMatrixMode(GL_MODELVIEW); //1. Camera (modelview) transform
+		glLoadIdentity();
+		glViewport(0, 0, winWidth, winHeight); //3. View transform
+		glMatrixMode(GL_PROJECTION);  // To operate on the Projection matrix
+		glLoadIdentity();             // Reset
+									  // Enable perspective projection with fovy, aspect, zNear and zFar
+		gluPerspective(90.0f, aspect, 0.1f, 100.0f);
+
+
+
+	}
+	else {
+		//glMatrixMode(GL_MODELVIEW); //1. Camera (modelview) transform
+		//glLoadIdentity();
+		//gluLookAt(0, 0, 0, 0, 0, -1, 0, 1, 0);
+
+		//glMatrixMode(GL_PROJECTION);
+		//glLoadIdentity();
+		//glOrtho(0.0, (GLdouble)winWidth, 0.0, (GLdouble)winHeight, -1.0, 1.0);
+	}
+
+
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear color and depth buffers
+	glMatrixMode(GL_MODELVIEW);     // To operate on model-view matrix
+
+									// Render a color-cube consisting of 6 quads with different colors
+	glLoadIdentity();                 // Reset the model-view matrix
+	glTranslatef(1.5f, 0.0f, -7.0f);  // Move right and into the screen
+
+	test();
+	glutSwapBuffers();
+	*/
 }
 
 
 //reshape: Handle window resizing (reshaping) events
 void reshape(int w, int h)
 {
+	winWidth = w; winHeight = h;
+	/*
+	draw_slice = false;
+	glEnable(GL_DEPTH_TEST);   // Enable depth testing for z-culling
+	glDepthFunc(GL_LEQUAL);    // Set the type of depth-test
+	glShadeModel(GL_SMOOTH);   // Enable smooth shading
     glViewport(0.0f, 0.0f, (GLfloat)w, (GLfloat)h);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluOrtho2D(0.0, (GLdouble)w, 0.0, (GLdouble)h);
+    glOrtho(0.0, (GLdouble)w, 0.0, (GLdouble)h, -1.0,1.0);
     winWidth = w; winHeight = h;
     wn = (fftw_real)(winWidth-20) / (fftw_real)(DIM + 1);   // Grid cell width
     hn = (fftw_real)(winHeight) / (fftw_real)(DIM + 1);
-    glutPostRedisplay();
+    glutPostRedisplay();*/
+	printf("reshape \n");
+	GLfloat aspect = (GLfloat)w / (GLfloat)h;
+
+	// Set the viewport to cover the new window
+	glViewport(0, 0, w, h);
+
+	// Set the aspect ratio of the clipping volume to match the viewport
+	glMatrixMode(GL_PROJECTION);  // To operate on the Projection matrix
+	glLoadIdentity();             // Reset
+								  // Enable perspective projection with fovy, aspect, zNear and zFar
+	gluPerspective(90.0f, aspect, 0.1f, 100.0f);
 }
 
 
@@ -1421,7 +1614,7 @@ void keyboard(unsigned char key, int x, int y)
         case 'a': frozen = 1-frozen; break;
         case 'q': exit(0);
             
-          case '1':
+        case '1':
         {
             if(scalr_data == RHO){
                 clamp_rho_min -= 0.5; if (clamp_rho_min < rho_min) clamp_rho_min =rho_min; break;
@@ -1468,16 +1661,16 @@ void keyboard(unsigned char key, int x, int y)
                 clamp_f_max += 0.5; if (f_max < clamp_f_max) clamp_f_max = f_max; break;
             }
         }
-         
-          case '6': NLEVELS +=1;  if (NLEVELS >= 256) NLEVELS = 256; break;
-          case '5': NLEVELS -=1;  if (NLEVELS <= 2) NLEVELS = 2; break;
+            
+        case '6': NLEVELS +=1;  if (NLEVELS >= 256) NLEVELS = 256; break;
+        case '5': NLEVELS -=1;  if (NLEVELS <= 2) NLEVELS = 2; break;
             
         case '7': hue -=0.1;  if (hue <= 0) hue = 0; printf("%f\n", hue);break;
         case '8': hue +=0.1;  if (hue >= 1) hue = 1; printf("%f\n", hue);break;
         case '9': saturation -=0.1;  if (saturation <= 0) saturation = 0; break;
         case '0': saturation +=0.1;  if (saturation >= 1.5) saturation = 1.5; break;
-// printf(std::to_string(saturation).c_str()); break;
-//            printf("Value: %f %f %f\n", value, value2, value3);
+            // printf(std::to_string(saturation).c_str()); break;
+            //            printf("Value: %f %f %f\n", value, value2, value3);
     }
 }
 
@@ -1487,18 +1680,21 @@ void keyboard(unsigned char key, int x, int y)
 //       cursor movement. Also inject some new matter into the field at the mouse location.
 void drag(int mx, int my)
 {
+	mx = winWidth - mx;
+	my = winWidth - my;
+	//printf("%d, %d\n", winWidth, winWidth);
     int xi,yi,X,Y; double  dx, dy, len;
     static int lmx=0,lmy=0;                //remembers last mouse location
-
+    
     // Compute the array index that corresponds to the cursor location
     xi = (int)clamp((double)(DIM + 1) * ((double)mx / (double)winWidth));
     yi = (int)clamp((double)(DIM + 1) * ((double)(winHeight - my) / (double)winHeight));
-
+    
     X = xi; Y = yi;
-
+    
     if (X > (DIM - 1))  X = DIM - 1; if (Y > (DIM - 1))  Y = DIM - 1;
     if (X < 0) X = 0; if (Y < 0) Y = 0;
-
+    
     // Add force at the cursor location
     my = winHeight - my;
     dx = mx - lmx; dy = my - lmy;
@@ -1517,10 +1713,32 @@ void OnMouseClick(int botton, int state, int x, int y){
         mouse_px = x;
         mouse_py = winHeight - y;
     }
+    if(draw_surface && botton == GLUT_LEFT_BUTTON && !has_put){
+        seeds_x[surface_put_n] = x;
+        seeds_y[surface_put_n] = winHeight-y;
+        surface_put_n++;
+        if(surface_put_n == surface_line_n){
+            surface_put_n = 0;
+            has_put = true;
+			first_surface = true;
+        }
+    }
 }
 
 void enableClick(int control) {
-	has_click = false;
+    has_click = false;
+}
+
+void putSeeds(int control){
+    int dim = surface_line_n * sizeof(float);        //Allocate data structures
+    seeds_x       = (float *)malloc(dim);
+    seeds_y       = (float *)malloc(dim);
+    has_put = false;
+}
+
+
+void toggleSlice(int control) {
+	draw_slice = !draw_slice;	
 }
 
 
@@ -1538,14 +1756,14 @@ int main(int argc, char **argv)
     printf("y:     toggle drawing hedgehogs on/off\n");
     printf("m:     toggle thru scalar coloring\n");
     printf("a:     toggle the animation on/off\n");
-        printf("1:     decrease min\n");
-        printf("2:     increase min\n");
-        printf("3:     decrease max\n");
-        printf("4:     increase max\n");
-        printf("5:     decrease number of colors (min = 2)\n");
-        printf("6:     increase number of colors (max = 256)\n");
+    printf("1:     decrease min\n");
+    printf("2:     increase min\n");
+    printf("3:     decrease max\n");
+    printf("4:     increase max\n");
+    printf("5:     decrease number of colors (min = 2)\n");
+    printf("6:     increase number of colors (max = 256)\n");
     printf("q:     quit\n\n");
-
+    
     
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
@@ -1553,6 +1771,7 @@ int main(int argc, char **argv)
     main_window = glutCreateWindow("Real-time smoke simulation and visualization");
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
+//    glutReshapeFunc(viewing);
     glutKeyboardFunc(keyboard);
     glutMotionFunc(drag);
     glutMouseFunc(OnMouseClick);
@@ -1572,7 +1791,7 @@ int main(int argc, char **argv)
     GLUI_Panel *panel3_3, *panel4_2, *panel4_1;
     glui = GLUI_Master.create_glui("Menu Bar");
     
-// public parameters panel
+    // public parameters panel
     obj_panel = new GLUI_Rollout(glui, "Properties", true );
     GLUI_Spinner *spinner = new GLUI_Spinner(obj_panel, "Bands:", &NLEVELS);
     spinner->set_int_limits(3, 256);
@@ -1580,21 +1799,46 @@ int main(int argc, char **argv)
     GLUI_Checkbox *check1 = new GLUI_Checkbox(obj_panel, "Scale", &is_scale);
     check1->set_int_val(1);
     check1->set_alignment(GLUI_ALIGN_LEFT);
-//    GLUI_Checkbox *check2 = new GLUI_Checkbox(obj_panel, "Reset", &is_reset);
-//    check2->set_alignment(GLUI_ALIGN_CENTER);
+    //    GLUI_Checkbox *check2 = new GLUI_Checkbox(obj_panel, "Reset", &is_reset);
+    //    check2->set_alignment(GLUI_ALIGN_CENTER);
     
     
-//    glui->add_column_to_panel(obj_panel, true);
+    //    glui->add_column_to_panel(obj_panel, true);
     new GLUI_Checkbox(obj_panel, "Change Hue and Saturation", &changeHS);
     GLUI_Spinner *spinner2 = new GLUI_Spinner(obj_panel, "Hue:", &hue);
     spinner2->set_float_limits(0, 1);
     spinner2->set_alignment(GLUI_ALIGN_LEFT);
-
+    
     GLUI_Spinner *spinner_sat = new GLUI_Spinner(obj_panel, "Saturation:", &saturation);
     spinner_sat->set_float_limits(0, 1);
     spinner_sat->set_alignment(GLUI_ALIGN_LEFT);
     
-// scalar field panel
+    GLUI_Spinner *spinner_alpha = new GLUI_Spinner(obj_panel, "alpha:", &global_alpha);
+    spinner_alpha->set_float_limits(0, 1);
+    spinner_alpha->set_alignment(GLUI_ALIGN_LEFT);
+    spinner_alpha->set_float_val(1);
+
+	GLUI_Spinner *spinner_z = new GLUI_Spinner(obj_panel, "z:", &camera_z);
+	spinner_z->set_float_limits(0, 100);
+	spinner_z->set_alignment(GLUI_ALIGN_LEFT);
+	spinner_z->set_float_val(68);
+
+	GLUI_Spinner *spinner_near = new GLUI_Spinner(obj_panel, "near:", &camera_near);
+	spinner_near->set_float_limits(0.001, 100);
+	spinner_near->set_alignment(GLUI_ALIGN_LEFT);
+	spinner_near->set_float_val(0.1);
+
+	GLUI_Spinner *spinner_far = new GLUI_Spinner(obj_panel, "far:", &camera_far);
+
+	spinner_far->set_alignment(GLUI_ALIGN_LEFT);
+	spinner_far->set_float_val(100);
+
+	GLUI_Spinner *spinner_fovy = new GLUI_Spinner(obj_panel, "fovy:", &camera_fovy);
+	spinner_far->set_alignment(GLUI_ALIGN_LEFT);
+	spinner_far->set_float_val(45);
+	
+    
+    // scalar field panel
     obj_panel2 = new GLUI_Rollout(glui, "Scalar Field Panel", true);
     new GLUI_Checkbox(obj_panel2, "Scalar Field", &draw_smoke);
     panel2_1 = new GLUI_Panel(obj_panel2, "Dataset", true);
@@ -1609,8 +1853,8 @@ int main(int argc, char **argv)
     new GLUI_RadioButton(radio3, "Heatmap");
     new GLUI_RadioButton(radio3, "Rainbow");
     
-//vector field panel
-    obj_panel3 = new GLUI_Rollout(glui, "Vector Field Panel", true);
+    //vector field panel
+    obj_panel3 = new GLUI_Rollout(glui, "Vector Field Panel", false);
     new GLUI_Checkbox(obj_panel3, "Vector Field", &draw_vecs);
     panel3_1 = new GLUI_Panel(obj_panel3, "Dataset", true);
     radio1 = new GLUI_RadioGroup(panel3_1, &vect_data);
@@ -1629,15 +1873,15 @@ int main(int argc, char **argv)
     new GLUI_RadioButton(radio5, "Triangles");
     new GLUI_RadioButton(radio5, "3D Arrows");
     
-// Gradient panel
-    obj_panel4 = new GLUI_Rollout(glui, "Gradient Panel", true);
+    // Gradient panel
+    obj_panel4 = new GLUI_Rollout(glui, "Gradient Panel", false);
     new GLUI_Checkbox(obj_panel4, "Gradient", &draw_gradient);
-    panel4_1 = new GLUI_Panel(obj_panel4, "Dataset", true);
+    panel4_1 = new GLUI_Panel(obj_panel4, "Dataset", false);
     radio_grad = new GLUI_RadioGroup(panel4_1, &gradient_col);
     new GLUI_RadioButton(radio_grad, "Density");
     new GLUI_RadioButton(radio_grad, "Velocity");
-
-    panel4_2 = new GLUI_Panel(obj_panel4, "ColorMaps", true);
+    
+    panel4_2 = new GLUI_Panel(obj_panel4, "ColorMaps", false);
     grad_map = new GLUI_RadioGroup(panel4_2, &gradient_map);
     new GLUI_RadioButton(grad_map, "Black-White");
     new GLUI_RadioButton(grad_map, "Heatmap");
@@ -1645,10 +1889,15 @@ int main(int argc, char **argv)
     
     GLUI_Rollout *obj_panel5 = new GLUI_Rollout(glui, "StreamLine Panel", false);
     new GLUI_Checkbox(obj_panel5, "StreamLine", &draw_streamline);
-	new GLUI_Button(obj_panel5, "Click a seed", -1, enableClick);
+    new GLUI_Button(obj_panel5, "Click a seed", -1, enableClick);
     
     GLUI_Rollout *obj_panel6 = new GLUI_Rollout(glui, "Slice Panel", false);
-    new GLUI_Checkbox(obj_panel6, "Slice", &draw_slice);
+    //new GLUI_Checkbox(obj_panel6, "Slice", &draw_slice);
+	new GLUI_Button(obj_panel6, "Switch Slice", -1, toggleSlice);
+    
+    GLUI_Rollout *obj_panel7 = new GLUI_Rollout(glui, "Stream Surface", false);
+    new GLUI_Checkbox(obj_panel7, "Stream surface", &draw_surface);
+    new GLUI_Button(obj_panel7, "Put seeds", -1, putSeeds);
     
     glui->set_main_gfx_window( main_window );
     GLUI_Master.set_glutIdleFunc(do_one_simulation_step);
