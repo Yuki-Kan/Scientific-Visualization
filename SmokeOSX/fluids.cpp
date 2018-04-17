@@ -95,6 +95,7 @@ int glyph = 0;
 int hedge = 0;
 int triangle = 1;
 int arrow = 2;
+int three_d = 3;
 float arrow_scale = 100;
 fftw_real  cell_width = ceil((fftw_real)winWidth / (fftw_real)(DIM));   // Grid cell width
 fftw_real  cell_height = ceil((fftw_real)winHeight / (fftw_real)(DIM));  // Grid cell heigh
@@ -992,16 +993,57 @@ void drawVector(float &x_diff, float &y_diff, float &px, float &py,
             
         }else if (glyph == arrow){
             
-            //                float x1 = wn+(fftw_real)i * wn;
-            //                float y1 = hn+(fftw_real)j * hn;
-            //                float x2 = (wn + (fftw_real)i * wn) + vec_scale * vx[idx];
-            //                float y2 = (hn + (fftw_real)j * hn) + vec_scale * vy[idx];
-            //                float vec_vx = x1 - x2;
-            //                float vec_vy = y1 - y2;
-            //                float len = len2DVector(vec_vx, vec_vy);
-            ////                        drawArrow(x1, x2, y1, y2, len/15);
-            ////                        drawAxes(x1, x2, y1, y2, len/15);
-            //                draw3D(x1, x2, y1, y2, len/10);
+            float val_mag = sqrt(px_v * px_v + py_v * py_v);
+            float new_mag = log_scale(val_mag, 1);
+            float scale_mag = new_mag/val_mag;
+            set_colormap_vector(100*val_mag);
+            
+            glBegin(GL_LINES);
+            glVertex3f(px, py,0);
+            glVertex3f(px + vec_scale *px_v*scale_mag, py + vec_scale *py_v*scale_mag,0);
+            glEnd();
+            
+            /**************************************/
+            float ver_x0 = px + vec_scale *px_v*scale_mag;
+            float ver_y0 = py + vec_scale *py_v*scale_mag;
+            
+            float ver_xm = px + vec_scale *px_v*scale_mag * 0.7;
+            float ver_ym = py + vec_scale *py_v*scale_mag * 0.7;
+            
+            float ver_x1 = ver_xm + vec_scale *py_v*scale_mag * 0.8;
+            float ver_y1 = ver_ym - vec_scale *px_v*scale_mag * 0.8;
+            
+            float ver_x2 = ver_xm - vec_scale *py_v*scale_mag * 0.8;
+            float ver_y2 = ver_ym + vec_scale *px_v*scale_mag * 0.8;
+            
+            glBegin(GL_TRIANGLES);
+            glVertex2f(ver_x0, ver_y0);
+            glVertex2f(ver_x1, ver_y1);
+            glVertex2f(ver_x2, ver_y2);
+            
+//            glPushMatrix();
+//            glTranslatef(ver_x, ver_y, 0);
+//            glRotatef(30.0, ver_x, -ver_y, 0);//rotate by some degrees
+//            glTranslatef(-ver_x, -ver_y, 0);//tranlate back by p
+//
+//            glBegin(GL_LINES);
+//            glVertex3f(ver_x,ver_y,0.0);
+//            glVertex3f(ver_x*0.8,ver_y*0.8,0.0);
+//            glEnd();
+//            glPopMatrix();
+            
+            /**************************************/
+//            glPushMatrix();
+//            glTranslatef(ver_x, ver_y, 0);
+//            glRotatef(120.0, ver_x, -ver_y, 0);//rotate by some degrees
+//            glTranslatef(-ver_x, -ver_y, 0);//tranlate back by p
+//
+//            glBegin(GL_LINES);
+//            glVertex3f(ver_x,ver_y,0.0);
+//            glVertex3f(ver_x*0.8,ver_y*0.8,0.0);
+//            glEnd();
+//            glPopMatrix();
+
             
         }else if (glyph == triangle){
             glBegin(GL_TRIANGLES);
@@ -1016,9 +1058,19 @@ void drawVector(float &x_diff, float &y_diff, float &px, float &py,
             glVertex2f(px + vec_scale * px_v , py + vec_scale * py_v);
             glVertex2f(px + scale * py_v, py - scale * px_v);
             glVertex2f(px - scale * py_v, py + scale * px_v);
-        }
-        else if (glyphs == "3D"){
+            
+        }else if (glyph == three_d){
             // ,,,,,
+            //                float x1 = wn+(fftw_real)i * wn;
+            //                float y1 = hn+(fftw_real)j * hn;
+            //                float x2 = (wn + (fftw_real)i * wn) + vec_scale * vx[idx];
+            //                float y2 = (hn + (fftw_real)j * hn) + vec_scale * vy[idx];
+            //                float vec_vx = x1 - x2;
+            //                float vec_vy = y1 - y2;
+            //                float len = len2DVector(vec_vx, vec_vy);
+            ////                        drawArrow(x1, x2, y1, y2, len/15);
+            ////                        drawAxes(x1, x2, y1, y2, len/15);
+            //                draw3D(x1, x2, y1, y2, len/10);
         }
     }
     else if (vect_data== FORCE){
@@ -1065,7 +1117,7 @@ void drawVector(float &x_diff, float &y_diff, float &px, float &py,
             glVertex2f(px + scale * py_f, py - scale * px_f);
             glVertex2f(px - scale * py_f, py + scale * px_f);
         }
-        else if (glyphs == "3D"){
+        else if (glyph == three_d){
             //....
         }
     }
@@ -1219,7 +1271,8 @@ void viewing() //Set up viewing ( see Section 2.6)
 {
     glMatrixMode(GL_MODELVIEW) ; //1. Camera (modelview) transform
     glLoadIdentity () ;
-    gluLookAt(0, 0 ,0 ,0 ,0 ,-1 ,0 ,1 ,0) ;
+//    glTranslatef(1.5f, 0.0f, -7.0f);
+    gluLookAt(0, 0 , 0,0 ,0 ,-1 ,0 ,1 ,0) ;
     
 //    glMatrixMode (GL_PROJECTION) ; //2. Projection transform
 //    glLoadIdentity () ;
@@ -1241,7 +1294,7 @@ void reset_viewing() //Set up viewing (see Section 2.6)
 //    glMatrixMode (GL_PROJECTION) ; //2. Projection transform
 //    glLoadIdentity () ;
 //    float aspect = float (winWidth)/winHeight;
-//    float fov = 300;
+//    float fov = 45;
 //    float near = 0.5;
 //    float far = 10;
 //    gluPerspective(fov ,aspect ,near ,far) ;
@@ -1255,10 +1308,6 @@ void visualize(void){
     float px0,py0,px1,py1,px2,py2,px3,py3;
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    //    glClearColor(0, 0, 0, 0);
-    //    glViewport(0,0,winWidth,winHeight);
-    //    glMatrixMode(GL_PROJECTION);
-    //    glLoadIdentity();
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     int iteratingNumber = 1;
     int adjust = -1;
@@ -1304,6 +1353,7 @@ void visualize(void){
                     glBegin(GL_TRIANGLES);
                     drawSmoke(px0, py0, idx0, px1, py1, idx1,
                               px2, py2, idx2, px3, py3, idx3, k);
+                    glutPostRedisplay();
                     glEnd();
                 }
                 
@@ -1402,21 +1452,17 @@ void myGlutIdle( void )
 }
 
 
-//display: Handle window redrawing events. Simply delegates to visualize().
-void display(void)
-{
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    visualize();
-    glFlush();
-    glutSwapBuffers();
-}
-
 
 //reshape: Handle window resizing (reshaping) events
 void reshape(int w, int h)
 {
+//    glViewport(0.0f, 0.0f, (GLfloat)w, (GLfloat)h);
+//    glMatrixMode(GL_PROJECTION);
+//    glLoadIdentity();
+//    gluOrtho2D(0.0, (GLdouble)w, 0.0, (GLdouble)h);
+    
+    /*********************/
+    //replace
     glViewport(0.0f, 0.0f, (GLfloat)w, (GLfloat)h);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
@@ -1425,7 +1471,36 @@ void reshape(int w, int h)
     wn = (fftw_real)(winWidth-20) / (fftw_real)(DIM + 1);   // Grid cell width
     hn = (fftw_real)(winHeight) / (fftw_real)(DIM + 1);
     glutPostRedisplay();
+    printf("reshaaape");
 }
+
+//display: Handle window redrawing events. Simply delegates to visualize().
+void display(void)
+{
+    /***********************/
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    visualize();
+    glFlush();
+    glutSwapBuffers();
+    
+//    glLoadIdentity();
+//    glRotatef( 0, 1.0f, 1.0f, 1.0f ) ;
+//    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+//    glEnable(GL_DEPTH_TEST);
+//    glMatrixMode(GL_PROJECTION);
+//    gluPerspective (45.0, 1.0, 1.0, 200.0);
+//    gluLookAt( 0.0,   10.0,  -100.0,
+//               0.0,   0.0,    0.0,
+//               0.0,   1.0,    1.0);
+//    visualize();
+//    glutSwapBuffers() ;
+//    reshape(winWidth, winHeight);
+    /*************************/
+}
+
+
 
 
 //keyboard: Handle key presses
@@ -1689,7 +1764,8 @@ int main(int argc, char **argv)
     radio5 = new GLUI_RadioGroup(panel3_3, &glyph);
     new GLUI_RadioButton(radio5, "Hedgehogs");
     new GLUI_RadioButton(radio5, "Triangles");
-    new GLUI_RadioButton(radio5, "3D Arrows");
+    new GLUI_RadioButton(radio5, "Arrows");
+    new GLUI_RadioButton(radio5, "3D glyphs");
     
     // Gradient panel
     obj_panel4 = new GLUI_Rollout(glui, "Gradient Panel", false);
