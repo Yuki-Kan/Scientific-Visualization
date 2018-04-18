@@ -1003,47 +1003,23 @@ void drawVector(float &x_diff, float &y_diff, float &px, float &py,
             glVertex3f(px + vec_scale *px_v*scale_mag, py + vec_scale *py_v*scale_mag,0);
             glEnd();
             
-            /**************************************/
+            /**************************************************************************/
             float ver_x0 = px + vec_scale *px_v*scale_mag;
             float ver_y0 = py + vec_scale *py_v*scale_mag;
             
             float ver_xm = px + vec_scale *px_v*scale_mag * 0.7;
             float ver_ym = py + vec_scale *py_v*scale_mag * 0.7;
             
-            float ver_x1 = ver_xm + vec_scale *py_v*scale_mag * 0.8;
-            float ver_y1 = ver_ym - vec_scale *px_v*scale_mag * 0.8;
+            float ver_x1 = ver_xm + vec_scale *py_v*scale_mag * 0.4;
+            float ver_y1 = ver_ym - vec_scale *px_v*scale_mag * 0.4;
             
-            float ver_x2 = ver_xm - vec_scale *py_v*scale_mag * 0.8;
-            float ver_y2 = ver_ym + vec_scale *px_v*scale_mag * 0.8;
+            float ver_x2 = ver_xm - vec_scale *py_v*scale_mag * 0.4;
+            float ver_y2 = ver_ym + vec_scale *px_v*scale_mag * 0.4;
             
             glBegin(GL_TRIANGLES);
             glVertex2f(ver_x0, ver_y0);
             glVertex2f(ver_x1, ver_y1);
             glVertex2f(ver_x2, ver_y2);
-            
-//            glPushMatrix();
-//            glTranslatef(ver_x, ver_y, 0);
-//            glRotatef(30.0, ver_x, -ver_y, 0);//rotate by some degrees
-//            glTranslatef(-ver_x, -ver_y, 0);//tranlate back by p
-//
-//            glBegin(GL_LINES);
-//            glVertex3f(ver_x,ver_y,0.0);
-//            glVertex3f(ver_x*0.8,ver_y*0.8,0.0);
-//            glEnd();
-//            glPopMatrix();
-            
-            /**************************************/
-//            glPushMatrix();
-//            glTranslatef(ver_x, ver_y, 0);
-//            glRotatef(120.0, ver_x, -ver_y, 0);//rotate by some degrees
-//            glTranslatef(-ver_x, -ver_y, 0);//tranlate back by p
-//
-//            glBegin(GL_LINES);
-//            glVertex3f(ver_x,ver_y,0.0);
-//            glVertex3f(ver_x*0.8,ver_y*0.8,0.0);
-//            glEnd();
-//            glPopMatrix();
-
             
         }else if (glyph == triangle){
             glBegin(GL_TRIANGLES);
@@ -1087,13 +1063,44 @@ void drawVector(float &x_diff, float &y_diff, float &px, float &py,
             float val_mag = sqrt(px_f * px_f + py_f * py_f);
             float new_mag = log_scale(val_mag, 1);
             float scale_mag = new_mag/val_mag;
-            px_f = px_f * scale_mag;
-            py_f = py_f * scale_mag;
+            px_f = px_f * scale_mag*2;
+            py_f = py_f * scale_mag*2;
             set_colormap_vector(100*val_mag);
             glVertex2f(px, py);
             glVertex2f(px + vec_scale *px_f*scale_mag, py + vec_scale *py_f*scale_mag);
             
         }else if (glyph == arrow){
+            
+            float val_mag = sqrt(px_f * px_f + py_f * py_f);
+            float new_mag = log_scale(val_mag, 1);
+            float scale_mag = new_mag/val_mag;
+            px_f = px_f * scale_mag*2;
+            py_f = py_f * scale_mag*2;
+            set_colormap_vector(100*val_mag);
+            
+            glBegin(GL_LINES);
+            glVertex2f(px, py);
+            glVertex2f(px + vec_scale *px_f*scale_mag, py + vec_scale *py_f*scale_mag);
+            glEnd();
+            
+            /**************************************************************************/
+            float ver_x0 = px + vec_scale *px_f*scale_mag;
+            float ver_y0 = py + vec_scale *py_f*scale_mag;
+            
+            float ver_xm = px + vec_scale *px_f*scale_mag * 0.7;
+            float ver_ym = py + vec_scale *py_f*scale_mag * 0.7;
+            
+            float ver_x1 = ver_xm + vec_scale *py_f*scale_mag * 0.2;
+            float ver_y1 = ver_ym - vec_scale *px_f*scale_mag * 0.2;
+            
+            float ver_x2 = ver_xm - vec_scale *py_f*scale_mag * 0.2;
+            float ver_y2 = ver_ym + vec_scale *px_f*scale_mag * 0.2;
+            
+            glBegin(GL_TRIANGLES);
+            glVertex2f(ver_x0, ver_y0);
+            glVertex2f(ver_x1, ver_y1);
+            glVertex2f(ver_x2, ver_y2);
+            
             //                float x1 = wn+(fftw_real)i * wn;
             //                float y1 = hn+(fftw_real)j * hn;
             //                float x2 = (wn + (fftw_real)i * wn) + vec_scale * fx[idx];
@@ -1103,17 +1110,19 @@ void drawVector(float &x_diff, float &y_diff, float &px, float &py,
             //                float len = len2DVector(vec_vx, vec_vy);
             //                drawArrow(x1, x2, y1, y2, len/15);
             ////                        drawAxes(x1, x2, y1, y2, len/15);
+            
+            
         }else if (glyph == triangle){
             glBegin(GL_TRIANGLES);
             float val_mag = sqrt(px_f * px_f + py_f * py_f);
-            float new_mag = log_scale(val_mag, 3);
+            float new_mag = log_scale(val_mag, 2);
             float scale_mag = new_mag/val_mag;
             px_f = px_f * scale_mag;
             py_f = py_f * scale_mag;
-            
-            int scale=5;
+            int scale=3;
+            float length_f = 0.1;
             set_colormap_vector(100*val_mag);
-            glVertex2f(px + vec_scale * px_f, py + vec_scale * py_f);
+            glVertex2f(px + vec_scale * px_f*length_f, py + vec_scale * py_f*length_f);
             glVertex2f(px + scale * py_f, py - scale * px_f);
             glVertex2f(px - scale * py_f, py + scale * px_f);
         }
@@ -1765,7 +1774,6 @@ int main(int argc, char **argv)
     new GLUI_RadioButton(radio5, "Hedgehogs");
     new GLUI_RadioButton(radio5, "Triangles");
     new GLUI_RadioButton(radio5, "Arrows");
-    new GLUI_RadioButton(radio5, "3D glyphs");
     
     // Gradient panel
     obj_panel4 = new GLUI_Rollout(glui, "Gradient Panel", false);
