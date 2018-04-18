@@ -1319,29 +1319,20 @@ void drawSurfaceSeed(){
         }
         glEnd();
         
+        }
+    }
+
+void drawSurface(){
+    if(first_surface){
         for(int i = 0; i < surface_line_n; i++){
             float px = seeds_x[i];
             float py = seeds_y[i];
-             glBegin(GL_LINES);
-//            stepStreamLine(px, py, 50, 0);
+            glBegin(GL_LINES);
             trackPoints(px, py);
             glEnd();
         }
     }
 }
-
-//void drawSurface(){
-////    int k;
-////    float unit_length = 2 * wn;
-//
-//    float px0 = seeds_x[0];
-//    float py0 = seeds_y[0];
-////    float pxn = seeds_x[surface_line_n-1];
-////    float pyn = seeds_y[surface_line_n-1];
-//
-//    stepStreamLine(px0, py0, 50, 0);
-////    stepStreamLine(pxn, pyn, 50, 0);
-//}
 
 void perspective(GLdouble fovy, GLdouble aspect, GLdouble zNear, GLdouble zFar)
 {
