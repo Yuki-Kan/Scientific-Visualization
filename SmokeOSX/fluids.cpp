@@ -107,9 +107,10 @@ float gradient_size_velo = 5;
 float mouse_px;
 float mouse_py;
 bool has_click = false;
-bool has_put = false;
+bool has_put = true;
 int surface_line_n = 2;
 int surface_put_n = 0;
+bool first_surface = false;
 float *seeds_x;
 float *seeds_y;
 float alpha=1;
@@ -287,6 +288,12 @@ void init_slice(){
     slice_fx      = (fftw_real *)malloc(dim);
     slice_fy      = (fftw_real *)malloc(dim);
     slice_rho     = (fftw_real *)malloc(dim);
+}
+
+void init_surface(){
+//    int dim = surface_line_n * sizeof(float);        //Allocate data structures
+//    seeds_x = (float *)malloc(dim);
+//    seeds_y = (float *)malloc(dim);
 }
 
 void store_data(){
@@ -1245,8 +1252,65 @@ void stepStreamLine(float px, float py, int step, int current_step){
     glEnd();
 }
 
+
+void trackPoints(float px, float py){
+    int i, j, idx0, idx1, idx2, idx3;
+    float px0,py0,px1,py1,px2,py2,px3,py3;
+    float dist = 0.5 * wn;
+    bool drawing_flag = true;
+    while (drawing_flag) {
+        for (i = 0; i < DIM; i++){
+            for (j = 0; j < DIM; j++) {
+                px0 = wn + (fftw_real)i * wn;
+                py0 = hn + (fftw_real)j * hn;
+                idx0 = (j * DIM) + i;
+                
+                px1 = wn + (fftw_real)i * wn;
+                py1 = hn + (fftw_real)(j + 1) * hn;
+                idx1 = ((j + 1) * DIM) + i;
+                
+                px2 = wn + (fftw_real)(i + 1) * wn;
+                py2 = hn + (fftw_real)(j + 1) * hn;
+                idx2 = ((j + 1) * DIM) + (i + 1);
+                
+                px3 = wn + (fftw_real)(i + 1) * wn;
+                py3 = hn + (fftw_real)j * hn;
+                idx3 = (j * DIM) + (i + 1);
+                
+                if (px > px0 && px < px2 && py > py0 && py < py2) {
+                    float x_diff = px - px0;
+                    float y_diff = py - py0;
+                    
+                    float vx_top = (vx[idx3] - vx[idx0])*x_diff / wn + vx[idx0];
+                    float vx_bot = (vx[idx2] - vx[idx1])*x_diff / wn + vx[idx1];
+                    float px_v = (vx_bot - vx_top)*y_diff / hn + vx_top;
+                    
+                    float vy_top = (vy[idx3] - vy[idx0])*x_diff / wn + vy[idx0];
+                    float vy_bot = (vy[idx2] - vy[idx1])*x_diff / wn + vy[idx1];
+                    float py_v = (vy_bot - vy_top)*y_diff / hn + vy_top;
+                    
+                    float p0_length = len2DVector(px_v, py_v);
+                    
+                    float dt = dist / p0_length;
+                    float pnext_x = px + px_v * dt;
+                    float pnext_y = py + py_v * dt;
+                    
+                    if (pnext_x < winWidth-30 && pnext_x > 0 && pnext_y < winHeight && pnext_y > 0) {
+                        glVertex2f(px, py);
+                        glVertex2f(pnext_x, pnext_y);
+                        set_colormap_vector(100 * p0_length);
+                    }else{
+                        drawing_flag = false;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+}
+
 void drawSurfaceSeed(){
-    if(has_put){
+    if(first_surface){
         glBegin(GL_LINE_STRIP);
         for(int i = 0; i < surface_line_n; i++){
             float px = seeds_x[i];
@@ -1254,8 +1318,30 @@ void drawSurfaceSeed(){
             glVertex2f(px, py);
         }
         glEnd();
+        
+        for(int i = 0; i < surface_line_n; i++){
+            float px = seeds_x[i];
+            float py = seeds_y[i];
+             glBegin(GL_LINES);
+//            stepStreamLine(px, py, 50, 0);
+            trackPoints(px, py);
+            glEnd();
+        }
     }
 }
+
+//void drawSurface(){
+////    int k;
+////    float unit_length = 2 * wn;
+//
+//    float px0 = seeds_x[0];
+//    float py0 = seeds_y[0];
+////    float pxn = seeds_x[surface_line_n-1];
+////    float pyn = seeds_y[surface_line_n-1];
+//
+//    stepStreamLine(px0, py0, 50, 0);
+////    stepStreamLine(pxn, pyn, 50, 0);
+//}
 
 void perspective(GLdouble fovy, GLdouble aspect, GLdouble zNear, GLdouble zFar)
 {
@@ -1438,7 +1524,7 @@ void visualize(void){
     }
     if(draw_surface){
         drawSurfaceSeed();
-        //
+        //        drawSurface();
     }
 }
 
@@ -1587,9 +1673,9 @@ void keyboard(unsigned char key, int x, int y)
             if(scalr_data == RHO){
                 clamp_rho_max += 0.5; if (rho_max < clamp_rho_max) clamp_rho_max =rho_max; break;
             }
-            else if (scalr_data== VELO){
+            else if (scalr_data== VELO || vect_data == VELO){
                 clamp_v_max += 0.5; if (v_max < clamp_v_max) clamp_v_max = v_max; break;
-            }else if (scalr_data== FORCE){
+            }else if (scalr_data== FORCE || vect_data == FORCE){
                 clamp_f_max += 0.5; if (f_max < clamp_f_max) clamp_f_max = f_max; break;
             }
         }
@@ -1649,6 +1735,7 @@ void OnMouseClick(int botton, int state, int x, int y){
         if(surface_put_n == surface_line_n){
             surface_put_n = 0;
             has_put = true;
+            first_surface = true;
         }
     }
 }
@@ -1659,10 +1746,12 @@ void enableClick(int control) {
 
 void putSeeds(int control){
     int dim = surface_line_n * sizeof(float);        //Allocate data structures
-    seeds_x       = (float *)malloc(dim);
-    seeds_y       = (float *)malloc(dim);
+    seeds_x = (float *)malloc(dim);
+    seeds_y = (float *)malloc(dim);
     has_put = false;
 }
+
+
 
 //main: The main program
 int main(int argc, char **argv)
@@ -1699,6 +1788,7 @@ int main(int argc, char **argv)
     glutMouseFunc(OnMouseClick);
     init_simulation(DIM);    //initialize the simulation data structures
     init_slice();
+    init_surface();
     zoom(5);
     
     /****************************************/
