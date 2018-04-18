@@ -118,7 +118,7 @@ int latest_index = 0;
 float glOrtho_xmin, glOrtho_xmax, glOrtho_ymin, glOrtho_ymax;
 int glyph_num = 10;
 float global_alpha = 1;
-float camera_z = 68;
+float camera_z = 76.0f;
 float camera_near = 0.1;
 float camera_far = 100;
 float camera_fovy = 45;
@@ -930,12 +930,9 @@ void drawSmoke(float &px0, float &py0, int &idx0,
                float &px2, float &py2, int &idx2,
                float &px3, float &py3, int &idx3, int k){
 
-	glColor3f(0.4f, 0.6f, 1.0f);     // Green
-	glVertex3f(-1.0f, 1.0f, -1.0f);
-	glVertex3f(-1.1f, 1.2f, -1.0f);
-	glVertex3f(1.2f, -1.1f, -1.0f);
+	
 
-    float z = -k;
+    float z = k;
 //    float z = -3;
     if(scalr_data == RHO){
         set_colormap(slice_rho[idx0]);    glVertex3f(px0, py0, z);
@@ -1478,7 +1475,7 @@ void display(void)
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-	gluLookAt(10, 10, camera_z - 50, 10, 10, 0, 0, 1, 0);
+	gluLookAt(-5, -8, camera_z - 50, -6, -8, 0, 0, 1, 0);
 	glTranslatef(0.0f, 0.0f, -7.0f);
 	GLdouble aspect = (GLdouble)winWidth / (GLdouble)winHeight;
 	float fov = camera_fovy;
@@ -1821,7 +1818,7 @@ int main(int argc, char **argv)
 	GLUI_Spinner *spinner_z = new GLUI_Spinner(obj_panel, "z:", &camera_z);
 	spinner_z->set_float_limits(0, 100);
 	spinner_z->set_alignment(GLUI_ALIGN_LEFT);
-	spinner_z->set_float_val(68);
+	spinner_z->set_float_val(76.0f);
 
 	GLUI_Spinner *spinner_near = new GLUI_Spinner(obj_panel, "near:", &camera_near);
 	spinner_near->set_float_limits(0.001, 100);
