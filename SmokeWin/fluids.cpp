@@ -281,7 +281,7 @@ void set_forces(void){
 }
 
 
-void init_slice(){
+void init_slice(int ctr){
     int n = DIM;
     size_t dim;
     dim     = n_slice * n * 2*(n/2+1)*sizeof(fftw_real);        //Allocate data structures
@@ -291,12 +291,21 @@ void init_slice(){
     slice_fx      = (fftw_real *)malloc(dim);
     slice_fy      = (fftw_real *)malloc(dim);
     slice_rho     = (fftw_real *)malloc(dim);
+    
+    // for stream surface trace
+    int dim_s = surface_line_n * sizeof(float);        //Allocate data structures
+    seeds_x = (float *)malloc(dim_s);
+    seeds_y = (float *)malloc(dim_s);
+    int traceDim = n_slice * sizeof(float)*surface_line_n;
+    trace_x = (float *)malloc(traceDim);
+    trace_y = (float *)malloc(traceDim);
+    trace_v = (float *)malloc(traceDim);
 }
 
 void init_surface(){
-//    int dim = surface_line_n * sizeof(float);        //Allocate data structures
-//    seeds_x = (float *)malloc(dim);
-//    seeds_y = (float *)malloc(dim);
+    //    int dim = surface_line_n * sizeof(float);        //Allocate data structures
+    //    seeds_x = (float *)malloc(dim);
+    //    seeds_y = (float *)malloc(dim);
 }
 
 void store_data(){
@@ -936,7 +945,7 @@ void drawSmoke(float &px0, float &py0, int &idx0,
                float &px2, float &py2, int &idx2,
                float &px3, float &py3, int &idx3, int k){
     float z = -k/n_slice;
-//    float z = -3;
+    //    float z = -3;
     if(scalr_data == RHO){
         set_colormap(slice_rho[idx0]);    glVertex3f(px0, py0, z);
         set_colormap(slice_rho[idx1]);    glVertex3f(px1, py1, z);
@@ -1257,42 +1266,39 @@ void stepStreamLine(float px, float py, int step, int current_step){
 
 
 void trackPoints(){
-	if (first_surface) {
-		for (int m = 0; m < surface_line_n; m++) {
-			int current_init_index = 0;
-			int adjust = -1;			
-
-			float xx, yy, mag;
-			glBegin(GL_LINE_STRIP);
-			for (int k = 0; k < n_slice; k++) {
-				int slice_index = latest_index + k + adjust;
-				if (slice_index >= n_slice) {
-					slice_index = slice_index - n_slice;
-				}
-				else if (slice_index < 0) {
-					slice_index = slice_index + n_slice;
-				}
-				int seedIndex = slice_index * surface_line_n + m;
-				
-				xx = trace_x[seedIndex];
-				yy = trace_y[seedIndex];
-				mag = trace_v[seedIndex];
-								
-				glVertex2f(xx, yy);
-				set_colormap_vector(mag);	
-				if (xx < winWidth - 30 && xx > 0 && yy < winHeight && yy > 0) {
-					glVertex2f(xx, yy);
-					set_colormap_vector(mag*100);
-				}
-				else {
-					break;
-				}
-			}
-			glEnd();
-		}
-	}
-                    
-
+    if (first_surface) {
+        for (int m = 0; m < surface_line_n; m++) {
+            int adjust = 0;
+            
+            float xx, yy, mag;
+            glBegin(GL_LINE_STRIP);
+            for (int k = 0; k < n_slice; k++) {
+                int slice_index = latest_index - k;
+                if (slice_index >= n_slice) {
+                    slice_index = slice_index - n_slice;
+                }
+                else if (slice_index < 0) {
+                    slice_index = slice_index + n_slice;
+                }
+                int seedIndex = slice_index * surface_line_n + m;
+                printf("%d\n", seedIndex);
+                xx = trace_x[seedIndex];
+                yy = trace_y[seedIndex];
+                mag = trace_v[seedIndex];
+                
+                if (xx < winWidth - 30 && xx > 0 && yy < winHeight && yy > 0) {
+                    glVertex2f(xx, yy);
+                    set_colormap_vector(mag*100);
+                }
+                else {
+                    break;
+                }
+            }
+            glEnd();
+        }
+    }
+    
+    
 }
 
 void drawSurfaceSeed(){
@@ -1305,79 +1311,81 @@ void drawSurfaceSeed(){
         }
         glEnd();
         
-        }
     }
+}
 
 void storeSurface(){
     if(first_surface){
-		int adjust = -1;
-		int n = DIM;
-		int grid_cells_f = n * n;
-		int current_init_index = 0;
-		int slice_index = latest_index + adjust;
-		if (slice_index >= n_slice) {
-			slice_index = slice_index - n_slice;
-		}
-		else if (slice_index < 0) {
-			slice_index = slice_index + n_slice;
-		}
-		current_init_index = grid_cells_f * slice_index;
-		int k, idx, idx0, idx1, idx2, idx3;
-		float px0, py0, px1, py1, px2, py2, px3, py3;
-
-		int stepSize = wn / 2;
+        int adjust = -1;
+        int n = DIM;
+        int grid_cells_f = n * n;
+        int current_init_index = 0;
+        int slice_index = latest_index + adjust;
+        if (slice_index >= n_slice) {
+            slice_index = slice_index - n_slice;
+        }
+        else if (slice_index < 0) {
+            slice_index = slice_index + n_slice;
+        }
+        current_init_index = grid_cells_f * slice_index;
+        int k, idx, idx0, idx1, idx2, idx3;
+        float px0, py0, px1, py1, px2, py2, px3, py3;
+        
+        float stepSize = (float)wn / 2;
         for(int m = 0; m < surface_line_n; m++){
-			int seedIndex = latest_index * surface_line_n + m;
+            int seedIndex = latest_index * surface_line_n + m;
             float px = seeds_x[m];
             float py = seeds_y[m];
-
-			int i = (int)px / wn;
-			int j = (int)py / hn;
-
-			px0 = wn + (fftw_real)i * wn;
-			py0 = hn + (fftw_real)j * hn;
-			idx0 = (j * DIM) + i + current_init_index;
-
-			px1 = wn + (fftw_real)i * wn;
-			py1 = hn + (fftw_real)(j + 1) * hn;
-			idx1 = ((j + 1) * DIM) + i + current_init_index;
-
-			px2 = wn + (fftw_real)(i + 1) * wn;
-			py2 = hn + (fftw_real)(j + 1) * hn;
-			idx2 = ((j + 1) * DIM) + (i + 1) + current_init_index;
-
-			px3 = wn + (fftw_real)(i + 1) * wn;
-			py3 = hn + (fftw_real)j * hn;
-			idx3 = (j * DIM) + (i + 1) + current_init_index;
-
-			float x_diff = (px - px0) / wn;
-			float y_diff = (py - py0) / hn;
-
-			float vx_top = (slice_vx[idx3] - slice_vx[idx0])*x_diff + slice_vx[idx0];
-			float vx_bot = (slice_vx[idx2] - slice_vx[idx1])*x_diff + slice_vx[idx1];
-			float px_v = (vx_bot - vx_top)*y_diff + vx_top;
-
-			float vy_top = (slice_vy[idx3] - slice_vy[idx0])*x_diff + slice_vy[idx0];
-			float vy_bot = (slice_vy[idx2] - slice_vy[idx1])*x_diff + slice_vy[idx1];
-			float py_v = (vy_bot - vy_top)*y_diff + vy_top;
-
-
-			float lenV = len2DVector(px_v, py_v);
-			float newPx = px + px_v * stepSize / lenV;
-			float newPy = py + py_v * stepSize / lenV;
-
-			if (newPx < winWidth - 30 && newPx > 0 && newPy < winHeight && newPy > 0) {
-			}
-			else {
-				break;
-			}
-
-			trace_x[seedIndex] = newPx;
-			trace_y[seedIndex] = newPy;
-			trace_v[seedIndex] = lenV;
-
-			seeds_x[m] = newPx;
-			seeds_y[m] = newPy;
+            
+            int i = (int)px / wn;
+            int j = (int)py / hn;
+            
+            px0 = wn + (fftw_real)i * wn;
+            py0 = hn + (fftw_real)j * hn;
+            idx0 = (j * DIM) + i + current_init_index;
+            
+            px1 = wn + (fftw_real)i * wn;
+            py1 = hn + (fftw_real)(j + 1) * hn;
+            idx1 = ((j + 1) * DIM) + i + current_init_index;
+            
+            px2 = wn + (fftw_real)(i + 1) * wn;
+            py2 = hn + (fftw_real)(j + 1) * hn;
+            idx2 = ((j + 1) * DIM) + (i + 1) + current_init_index;
+            
+            px3 = wn + (fftw_real)(i + 1) * wn;
+            py3 = hn + (fftw_real)j * hn;
+            idx3 = (j * DIM) + (i + 1) + current_init_index;
+            
+            float x_diff = (px - px0) / wn;
+            float y_diff = (py - py0) / hn;
+            
+            float vx_top = (slice_vx[idx3] - slice_vx[idx0])*x_diff + slice_vx[idx0];
+            float vx_bot = (slice_vx[idx2] - slice_vx[idx1])*x_diff + slice_vx[idx1];
+            float px_v = (vx_bot - vx_top)*y_diff + vx_top;
+            
+            float vy_top = (slice_vy[idx3] - slice_vy[idx0])*x_diff + slice_vy[idx0];
+            float vy_bot = (slice_vy[idx2] - slice_vy[idx1])*x_diff + slice_vy[idx1];
+            float py_v = (vy_bot - vy_top)*y_diff + vy_top;
+            
+            
+            float lenV = len2DVector(px_v, py_v);
+            float newPx = px + px_v * stepSize / lenV;
+            float newPy = py + py_v * stepSize / lenV;
+            
+            if (newPx < winWidth - 30 && newPx > 0 && newPy < winHeight && newPy > 0) {
+                
+            }
+            else {
+                first_surface = false;
+                break;
+            }
+            
+            trace_x[seedIndex] = newPx;
+            trace_y[seedIndex] = newPy;
+            trace_v[seedIndex] = lenV;
+            
+            seeds_x[m] = newPx;
+            seeds_y[m] = newPy;
         }
     }
 }
@@ -1405,18 +1413,18 @@ void viewing() //Set up viewing ( see Section 2.6)
 {
     glMatrixMode(GL_MODELVIEW) ; //1. Camera (modelview) transform
     glLoadIdentity () ;
-//    glTranslatef(1.5f, 0.0f, -7.0f);
+    //    glTranslatef(1.5f, 0.0f, -7.0f);
     gluLookAt(0, 0 , 0,0 ,0 ,-1 ,0 ,1 ,0) ;
     
-//    glMatrixMode (GL_PROJECTION) ; //2. Projection transform
-//    glLoadIdentity () ;
-//    float aspect = float (winWidth)/ winHeight;
-//    float fov = 90;
-//    float near = 0.01;
-//    float far = 4;
-//    gluPerspective(fov ,aspect ,near ,far) ;
-//
-//    glViewport (0 ,0 ,winWidth, winHeight) ; //3. View transform
+    //    glMatrixMode (GL_PROJECTION) ; //2. Projection transform
+    //    glLoadIdentity () ;
+    //    float aspect = float (winWidth)/ winHeight;
+    //    float fov = 90;
+    //    float near = 0.01;
+    //    float far = 4;
+    //    gluPerspective(fov ,aspect ,near ,far) ;
+    //
+    //    glViewport (0 ,0 ,winWidth, winHeight) ; //3. View transform
     
 }
 void reset_viewing() //Set up viewing (see Section 2.6)
@@ -1425,15 +1433,15 @@ void reset_viewing() //Set up viewing (see Section 2.6)
     glLoadIdentity () ;
     gluLookAt(0, 0 ,0 ,0 ,0 ,-1 ,0 ,1 ,0) ;
     
-//    glMatrixMode (GL_PROJECTION) ; //2. Projection transform
-//    glLoadIdentity () ;
-//    float aspect = float (winWidth)/winHeight;
-//    float fov = 45;
-//    float near = 0.5;
-//    float far = 10;
-//    gluPerspective(fov ,aspect ,near ,far) ;
-//
-//    glViewport (0 ,0 ,winWidth,winHeight) ; //3. View transform
+    //    glMatrixMode (GL_PROJECTION) ; //2. Projection transform
+    //    glLoadIdentity () ;
+    //    float aspect = float (winWidth)/winHeight;
+    //    float fov = 45;
+    //    float near = 0.5;
+    //    float far = 10;
+    //    gluPerspective(fov ,aspect ,near ,far) ;
+    //
+    //    glViewport (0 ,0 ,winWidth,winHeight) ; //3. View transform
     
 }
 
@@ -1562,9 +1570,9 @@ void visualize(void){
         }
     }
     if(draw_surface){
-        //drawSurfaceSeed();
-		storeSurface();
-		trackPoints();
+        drawSurfaceSeed();
+        storeSurface();
+        trackPoints();
     }
 }
 
@@ -1591,10 +1599,10 @@ void myGlutIdle( void )
 //reshape: Handle window resizing (reshaping) events
 void reshape(int w, int h)
 {
-//    glViewport(0.0f, 0.0f, (GLfloat)w, (GLfloat)h);
-//    glMatrixMode(GL_PROJECTION);
-//    glLoadIdentity();
-//    gluOrtho2D(0.0, (GLdouble)w, 0.0, (GLdouble)h);
+    //    glViewport(0.0f, 0.0f, (GLfloat)w, (GLfloat)h);
+    //    glMatrixMode(GL_PROJECTION);
+    //    glLoadIdentity();
+    //    gluOrtho2D(0.0, (GLdouble)w, 0.0, (GLdouble)h);
     
     /*********************/
     //replace
@@ -1620,18 +1628,18 @@ void display(void)
     glFlush();
     glutSwapBuffers();
     
-//    glLoadIdentity();
-//    glRotatef( 0, 1.0f, 1.0f, 1.0f ) ;
-//    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-//    glEnable(GL_DEPTH_TEST);
-//    glMatrixMode(GL_PROJECTION);
-//    gluPerspective (45.0, 1.0, 1.0, 200.0);
-//    gluLookAt( 0.0,   10.0,  -100.0,
-//               0.0,   0.0,    0.0,
-//               0.0,   1.0,    1.0);
-//    visualize();
-//    glutSwapBuffers() ;
-//    reshape(winWidth, winHeight);
+    //    glLoadIdentity();
+    //    glRotatef( 0, 1.0f, 1.0f, 1.0f ) ;
+    //    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    //    glEnable(GL_DEPTH_TEST);
+    //    glMatrixMode(GL_PROJECTION);
+    //    gluPerspective (45.0, 1.0, 1.0, 200.0);
+    //    gluLookAt( 0.0,   10.0,  -100.0,
+    //               0.0,   0.0,    0.0,
+    //               0.0,   1.0,    1.0);
+    //    visualize();
+    //    glutSwapBuffers() ;
+    //    reshape(winWidth, winHeight);
     /*************************/
 }
 
@@ -1701,9 +1709,9 @@ void keyboard(unsigned char key, int x, int y)
             if(scalr_data == RHO){
                 clamp_rho_max -= 0.5; if (clamp_rho_min >= clamp_rho_max) clamp_rho_max = clamp_rho_min + 0.5; break;
             }
-            else if (scalr_data== VELO){
+            else if (scalr_data== VELO || vect_data == VELO){
                 clamp_v_max -= 0.5; if (clamp_v_min >= clamp_v_max) clamp_v_max = clamp_v_min + 0.5; break;
-            }else if (scalr_data== FORCE){
+            }else if (scalr_data== FORCE || vect_data == FORCE){
                 clamp_f_max -= 0.5; if (clamp_f_min >= clamp_f_max) clamp_f_max = clamp_f_min + 0.5; break;
             }
         }
@@ -1769,10 +1777,10 @@ void OnMouseClick(int botton, int state, int x, int y){
         mouse_py = winHeight - y;
     }
     if(draw_surface && botton == GLUT_LEFT_BUTTON && !has_put){
-		if (surface_put_n >= 0) {
-			seeds_x[surface_put_n] = x;
-			seeds_y[surface_put_n] = winHeight - y;
-		}
+        if (surface_put_n >= 0) {
+            seeds_x[surface_put_n] = x;
+            seeds_y[surface_put_n] = winHeight - y;
+        }
         surface_put_n++;
         if(surface_put_n == surface_line_n){
             surface_put_n = -1;
@@ -1790,12 +1798,12 @@ void putSeeds(int control){
     int dim = surface_line_n * sizeof(float);        //Allocate data structures
     seeds_x = (float *)malloc(dim);
     seeds_y = (float *)malloc(dim);
-	int traceDim = n_slice * sizeof(float)*surface_line_n;
-	trace_x = (float *)malloc(traceDim);
-	trace_y = (float *)malloc(traceDim);
-	trace_v = (float *)malloc(traceDim);
+    int traceDim = n_slice * sizeof(float)*surface_line_n;
+    trace_x = (float *)malloc(traceDim);
+    trace_y = (float *)malloc(traceDim);
+    trace_v = (float *)malloc(traceDim);
     has_put = false;
-	first_surface = false;
+    first_surface = false;
 }
 
 
@@ -1829,12 +1837,12 @@ int main(int argc, char **argv)
     main_window = glutCreateWindow("Real-time smoke simulation and visualization");
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
-//    glutReshapeFunc(viewing);
+    //    glutReshapeFunc(viewing);
     glutKeyboardFunc(keyboard);
     glutMotionFunc(drag);
     glutMouseFunc(OnMouseClick);
     init_simulation(DIM);    //initialize the simulation data structures
-    init_slice();
+    init_slice(0);
     init_surface();
     zoom(5);
     
@@ -1877,6 +1885,10 @@ int main(int argc, char **argv)
     spinner_alpha->set_alignment(GLUI_ALIGN_LEFT);
     spinner_alpha->set_float_val(1);
     
+    GLUI_Spinner *spinner_slice = new GLUI_Spinner(obj_panel, "Slice number:", &n_slice, -1, init_slice);
+    spinner_slice->set_int_limits(20, 50);
+    spinner_slice->set_alignment(GLUI_ALIGN_LEFT);
+    
     // scalar field panel
     obj_panel2 = new GLUI_Rollout(glui, "Scalar Field Panel", true);
     new GLUI_Checkbox(obj_panel2, "Scalar Field", &draw_smoke);
@@ -1915,12 +1927,12 @@ int main(int argc, char **argv)
     // Gradient panel
     obj_panel4 = new GLUI_Rollout(glui, "Gradient Panel", false);
     new GLUI_Checkbox(obj_panel4, "Gradient", &draw_gradient);
-    panel4_1 = new GLUI_Panel(obj_panel4, "Dataset", false);
+    panel4_1 = new GLUI_Panel(obj_panel4, "Dataset", true);
     radio_grad = new GLUI_RadioGroup(panel4_1, &gradient_col);
     new GLUI_RadioButton(radio_grad, "Density");
     new GLUI_RadioButton(radio_grad, "Velocity");
     
-    panel4_2 = new GLUI_Panel(obj_panel4, "ColorMaps", false);
+    panel4_2 = new GLUI_Panel(obj_panel4, "ColorMaps", true);
     grad_map = new GLUI_RadioGroup(panel4_2, &gradient_map);
     new GLUI_RadioButton(grad_map, "Black-White");
     new GLUI_RadioButton(grad_map, "Heatmap");
