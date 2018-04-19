@@ -18,7 +18,7 @@
 #include "transform.h"
 
 //--- SIMULATION PARAMETERS ------------------------------------------------------------------------
-//const float M_PI = 3.14159;
+//const float M_PI = 3.14159;r
 const int DIM = 50;            //size of simulation grid
 double dt = 0.4;                //simulation time step
 float visc = 0.001;                //fluid viscosity
@@ -109,10 +109,13 @@ float mouse_py;
 bool has_click = false;
 bool has_put = true;
 int surface_line_n = 2;
-int surface_put_n = 0;
+int surface_put_n = -1;
 bool first_surface = false;
 float *seeds_x;
 float *seeds_y;
+float *trace_x;
+float *trace_y;
+float *trace_v;
 float alpha=1;
 int n_slice = 20;
 int latest_index = 0;
@@ -291,9 +294,9 @@ void init_slice(){
 }
 
 void init_surface(){
-//    int dim = surface_line_n * sizeof(float);        //Allocate data structures
-//    seeds_x = (float *)malloc(dim);
-//    seeds_y = (float *)malloc(dim);
+    //    int dim = surface_line_n * sizeof(float);        //Allocate data structures
+    //    seeds_x = (float *)malloc(dim);
+    //    seeds_y = (float *)malloc(dim);
 }
 
 void store_data(){
@@ -933,7 +936,7 @@ void drawSmoke(float &px0, float &py0, int &idx0,
                float &px2, float &py2, int &idx2,
                float &px3, float &py3, int &idx3, int k){
     float z = -k/n_slice;
-//    float z = -3;
+    //    float z = -3;
     if(scalr_data == RHO){
         set_colormap(slice_rho[idx0]);    glVertex3f(px0, py0, z);
         set_colormap(slice_rho[idx1]);    glVertex3f(px1, py1, z);
@@ -1253,60 +1256,40 @@ void stepStreamLine(float px, float py, int step, int current_step){
 }
 
 
-void trackPoints(float px, float py){
-    int i, j, idx0, idx1, idx2, idx3;
-    float px0,py0,px1,py1,px2,py2,px3,py3;
-    float dist = 0.5 * wn;
-    bool drawing_flag = true;
-    while (drawing_flag) {
-        for (i = 0; i < DIM; i++){
-            for (j = 0; j < DIM; j++) {
-                px0 = wn + (fftw_real)i * wn;
-                py0 = hn + (fftw_real)j * hn;
-                idx0 = (j * DIM) + i;
+void trackPoints(){
+    if (first_surface) {
+        for (int m = 0; m < surface_line_n; m++) {
+            int adjust = 0;
+            
+            float xx, yy, mag;
+            glBegin(GL_LINE_STRIP);
+            for (int k = 0; k < n_slice; k++) {
+                int slice_index = latest_index - k;
+                if (slice_index >= n_slice) {
+                    slice_index = slice_index - n_slice;
+                }
+                else if (slice_index < 0) {
+                    slice_index = slice_index + n_slice;
+                }
+                int seedIndex = slice_index * surface_line_n + m;
+                printf("%d\n", seedIndex);
+                xx = trace_x[seedIndex];
+                yy = trace_y[seedIndex];
+                mag = trace_v[seedIndex];
                 
-                px1 = wn + (fftw_real)i * wn;
-                py1 = hn + (fftw_real)(j + 1) * hn;
-                idx1 = ((j + 1) * DIM) + i;
-                
-                px2 = wn + (fftw_real)(i + 1) * wn;
-                py2 = hn + (fftw_real)(j + 1) * hn;
-                idx2 = ((j + 1) * DIM) + (i + 1);
-                
-                px3 = wn + (fftw_real)(i + 1) * wn;
-                py3 = hn + (fftw_real)j * hn;
-                idx3 = (j * DIM) + (i + 1);
-                
-                if (px > px0 && px < px2 && py > py0 && py < py2) {
-                    float x_diff = px - px0;
-                    float y_diff = py - py0;
-                    
-                    float vx_top = (vx[idx3] - vx[idx0])*x_diff / wn + vx[idx0];
-                    float vx_bot = (vx[idx2] - vx[idx1])*x_diff / wn + vx[idx1];
-                    float px_v = (vx_bot - vx_top)*y_diff / hn + vx_top;
-                    
-                    float vy_top = (vy[idx3] - vy[idx0])*x_diff / wn + vy[idx0];
-                    float vy_bot = (vy[idx2] - vy[idx1])*x_diff / wn + vy[idx1];
-                    float py_v = (vy_bot - vy_top)*y_diff / hn + vy_top;
-                    
-                    float p0_length = len2DVector(px_v, py_v);
-                    
-                    float dt = dist / p0_length;
-                    float pnext_x = px + px_v * dt;
-                    float pnext_y = py + py_v * dt;
-                    
-                    if (pnext_x < winWidth-30 && pnext_x > 0 && pnext_y < winHeight && pnext_y > 0) {
-                        glVertex2f(px, py);
-                        glVertex2f(pnext_x, pnext_y);
-                        set_colormap_vector(100 * p0_length);
-                    }else{
-                        drawing_flag = false;
-                        break;
-                    }
+                if (xx < winWidth - 30 && xx > 0 && yy < winHeight && yy > 0) {
+                    glVertex2f(xx, yy);
+                    set_colormap_vector(mag*100);
+                }
+                else {
+                    break;
                 }
             }
+            glEnd();
         }
     }
+    
+    
 }
 
 void drawSurfaceSeed(){
@@ -1319,17 +1302,81 @@ void drawSurfaceSeed(){
         }
         glEnd();
         
-        }
     }
+}
 
-void drawSurface(){
+void storeSurface(){
     if(first_surface){
-        for(int i = 0; i < surface_line_n; i++){
-            float px = seeds_x[i];
-            float py = seeds_y[i];
-            glBegin(GL_LINES);
-            trackPoints(px, py);
-            glEnd();
+        int adjust = -1;
+        int n = DIM;
+        int grid_cells_f = n * n;
+        int current_init_index = 0;
+        int slice_index = latest_index + adjust;
+        if (slice_index >= n_slice) {
+            slice_index = slice_index - n_slice;
+        }
+        else if (slice_index < 0) {
+            slice_index = slice_index + n_slice;
+        }
+        current_init_index = grid_cells_f * slice_index;
+        int k, idx, idx0, idx1, idx2, idx3;
+        float px0, py0, px1, py1, px2, py2, px3, py3;
+        
+        float stepSize = (float)wn / 2;
+        for(int m = 0; m < surface_line_n; m++){
+            int seedIndex = latest_index * surface_line_n + m;
+            float px = seeds_x[m];
+            float py = seeds_y[m];
+            
+            int i = (int)px / wn;
+            int j = (int)py / hn;
+            
+            px0 = wn + (fftw_real)i * wn;
+            py0 = hn + (fftw_real)j * hn;
+            idx0 = (j * DIM) + i + current_init_index;
+            
+            px1 = wn + (fftw_real)i * wn;
+            py1 = hn + (fftw_real)(j + 1) * hn;
+            idx1 = ((j + 1) * DIM) + i + current_init_index;
+            
+            px2 = wn + (fftw_real)(i + 1) * wn;
+            py2 = hn + (fftw_real)(j + 1) * hn;
+            idx2 = ((j + 1) * DIM) + (i + 1) + current_init_index;
+            
+            px3 = wn + (fftw_real)(i + 1) * wn;
+            py3 = hn + (fftw_real)j * hn;
+            idx3 = (j * DIM) + (i + 1) + current_init_index;
+            
+            float x_diff = (px - px0) / wn;
+            float y_diff = (py - py0) / hn;
+            
+            float vx_top = (slice_vx[idx3] - slice_vx[idx0])*x_diff + slice_vx[idx0];
+            float vx_bot = (slice_vx[idx2] - slice_vx[idx1])*x_diff + slice_vx[idx1];
+            float px_v = (vx_bot - vx_top)*y_diff + vx_top;
+            
+            float vy_top = (slice_vy[idx3] - slice_vy[idx0])*x_diff + slice_vy[idx0];
+            float vy_bot = (slice_vy[idx2] - slice_vy[idx1])*x_diff + slice_vy[idx1];
+            float py_v = (vy_bot - vy_top)*y_diff + vy_top;
+            
+            
+            float lenV = len2DVector(px_v, py_v);
+            float newPx = px + px_v * stepSize / lenV;
+            float newPy = py + py_v * stepSize / lenV;
+            
+            if (newPx < winWidth - 30 && newPx > 0 && newPy < winHeight && newPy > 0) {
+                
+            }
+            else {
+                first_surface = false;
+                break;
+            }
+            
+            trace_x[seedIndex] = newPx;
+            trace_y[seedIndex] = newPy;
+            trace_v[seedIndex] = lenV;
+            
+            seeds_x[m] = newPx;
+            seeds_y[m] = newPy;
         }
     }
 }
@@ -1357,18 +1404,18 @@ void viewing() //Set up viewing ( see Section 2.6)
 {
     glMatrixMode(GL_MODELVIEW) ; //1. Camera (modelview) transform
     glLoadIdentity () ;
-//    glTranslatef(1.5f, 0.0f, -7.0f);
+    //    glTranslatef(1.5f, 0.0f, -7.0f);
     gluLookAt(0, 0 , 0,0 ,0 ,-1 ,0 ,1 ,0) ;
     
-//    glMatrixMode (GL_PROJECTION) ; //2. Projection transform
-//    glLoadIdentity () ;
-//    float aspect = float (winWidth)/ winHeight;
-//    float fov = 90;
-//    float near = 0.01;
-//    float far = 4;
-//    gluPerspective(fov ,aspect ,near ,far) ;
-//
-//    glViewport (0 ,0 ,winWidth, winHeight) ; //3. View transform
+    //    glMatrixMode (GL_PROJECTION) ; //2. Projection transform
+    //    glLoadIdentity () ;
+    //    float aspect = float (winWidth)/ winHeight;
+    //    float fov = 90;
+    //    float near = 0.01;
+    //    float far = 4;
+    //    gluPerspective(fov ,aspect ,near ,far) ;
+    //
+    //    glViewport (0 ,0 ,winWidth, winHeight) ; //3. View transform
     
 }
 void reset_viewing() //Set up viewing (see Section 2.6)
@@ -1377,15 +1424,15 @@ void reset_viewing() //Set up viewing (see Section 2.6)
     glLoadIdentity () ;
     gluLookAt(0, 0 ,0 ,0 ,0 ,-1 ,0 ,1 ,0) ;
     
-//    glMatrixMode (GL_PROJECTION) ; //2. Projection transform
-//    glLoadIdentity () ;
-//    float aspect = float (winWidth)/winHeight;
-//    float fov = 45;
-//    float near = 0.5;
-//    float far = 10;
-//    gluPerspective(fov ,aspect ,near ,far) ;
-//
-//    glViewport (0 ,0 ,winWidth,winHeight) ; //3. View transform
+    //    glMatrixMode (GL_PROJECTION) ; //2. Projection transform
+    //    glLoadIdentity () ;
+    //    float aspect = float (winWidth)/winHeight;
+    //    float fov = 45;
+    //    float near = 0.5;
+    //    float far = 10;
+    //    gluPerspective(fov ,aspect ,near ,far) ;
+    //
+    //    glViewport (0 ,0 ,winWidth,winHeight) ; //3. View transform
     
 }
 
@@ -1515,7 +1562,8 @@ void visualize(void){
     }
     if(draw_surface){
         drawSurfaceSeed();
-        //        drawSurface();
+        storeSurface();
+        trackPoints();
     }
 }
 
@@ -1542,10 +1590,10 @@ void myGlutIdle( void )
 //reshape: Handle window resizing (reshaping) events
 void reshape(int w, int h)
 {
-//    glViewport(0.0f, 0.0f, (GLfloat)w, (GLfloat)h);
-//    glMatrixMode(GL_PROJECTION);
-//    glLoadIdentity();
-//    gluOrtho2D(0.0, (GLdouble)w, 0.0, (GLdouble)h);
+    //    glViewport(0.0f, 0.0f, (GLfloat)w, (GLfloat)h);
+    //    glMatrixMode(GL_PROJECTION);
+    //    glLoadIdentity();
+    //    gluOrtho2D(0.0, (GLdouble)w, 0.0, (GLdouble)h);
     
     /*********************/
     //replace
@@ -1571,18 +1619,18 @@ void display(void)
     glFlush();
     glutSwapBuffers();
     
-//    glLoadIdentity();
-//    glRotatef( 0, 1.0f, 1.0f, 1.0f ) ;
-//    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-//    glEnable(GL_DEPTH_TEST);
-//    glMatrixMode(GL_PROJECTION);
-//    gluPerspective (45.0, 1.0, 1.0, 200.0);
-//    gluLookAt( 0.0,   10.0,  -100.0,
-//               0.0,   0.0,    0.0,
-//               0.0,   1.0,    1.0);
-//    visualize();
-//    glutSwapBuffers() ;
-//    reshape(winWidth, winHeight);
+    //    glLoadIdentity();
+    //    glRotatef( 0, 1.0f, 1.0f, 1.0f ) ;
+    //    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    //    glEnable(GL_DEPTH_TEST);
+    //    glMatrixMode(GL_PROJECTION);
+    //    gluPerspective (45.0, 1.0, 1.0, 200.0);
+    //    gluLookAt( 0.0,   10.0,  -100.0,
+    //               0.0,   0.0,    0.0,
+    //               0.0,   1.0,    1.0);
+    //    visualize();
+    //    glutSwapBuffers() ;
+    //    reshape(winWidth, winHeight);
     /*************************/
 }
 
@@ -1720,11 +1768,13 @@ void OnMouseClick(int botton, int state, int x, int y){
         mouse_py = winHeight - y;
     }
     if(draw_surface && botton == GLUT_LEFT_BUTTON && !has_put){
-        seeds_x[surface_put_n] = x;
-        seeds_y[surface_put_n] = winHeight-y;
+        if (surface_put_n >= 0) {
+            seeds_x[surface_put_n] = x;
+            seeds_y[surface_put_n] = winHeight - y;
+        }
         surface_put_n++;
         if(surface_put_n == surface_line_n){
-            surface_put_n = 0;
+            surface_put_n = -1;
             has_put = true;
             first_surface = true;
         }
@@ -1739,7 +1789,12 @@ void putSeeds(int control){
     int dim = surface_line_n * sizeof(float);        //Allocate data structures
     seeds_x = (float *)malloc(dim);
     seeds_y = (float *)malloc(dim);
+    int traceDim = n_slice * sizeof(float)*surface_line_n;
+    trace_x = (float *)malloc(traceDim);
+    trace_y = (float *)malloc(traceDim);
+    trace_v = (float *)malloc(traceDim);
     has_put = false;
+    first_surface = false;
 }
 
 
@@ -1773,7 +1828,7 @@ int main(int argc, char **argv)
     main_window = glutCreateWindow("Real-time smoke simulation and visualization");
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
-//    glutReshapeFunc(viewing);
+    //    glutReshapeFunc(viewing);
     glutKeyboardFunc(keyboard);
     glutMotionFunc(drag);
     glutMouseFunc(OnMouseClick);
