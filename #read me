@@ -1,0 +1,6 @@
+#read me
+
+There are two versions of this SciVis project, which can be found in SmokeOSX and SmokeWin in SciVis-project.zip.
+The main codes are in the fluids.cpp
+
+Besides, there is another OSX version in vis-proj.zip, which is specially for Xcode.
