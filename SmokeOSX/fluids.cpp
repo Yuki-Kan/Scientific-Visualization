@@ -281,7 +281,7 @@ void set_forces(void){
 }
 
 
-void init_slice(){
+void init_slice(int ctr){
     int n = DIM;
     size_t dim;
     dim     = n_slice * n * 2*(n/2+1)*sizeof(fftw_real);        //Allocate data structures
@@ -1833,7 +1833,7 @@ int main(int argc, char **argv)
     glutMotionFunc(drag);
     glutMouseFunc(OnMouseClick);
     init_simulation(DIM);    //initialize the simulation data structures
-    init_slice();
+    init_slice(0);
     init_surface();
     zoom(5);
     
@@ -1875,6 +1875,10 @@ int main(int argc, char **argv)
     spinner_alpha->set_float_limits(0, 1);
     spinner_alpha->set_alignment(GLUI_ALIGN_LEFT);
     spinner_alpha->set_float_val(1);
+    
+    GLUI_Spinner *spinner_slice = new GLUI_Spinner(obj_panel, "Slice number:", &n_slice, -1, init_slice);
+    spinner_slice->set_int_limits(20, 50);
+    spinner_slice->set_alignment(GLUI_ALIGN_LEFT);
     
     // scalar field panel
     obj_panel2 = new GLUI_Rollout(glui, "Scalar Field Panel", true);
