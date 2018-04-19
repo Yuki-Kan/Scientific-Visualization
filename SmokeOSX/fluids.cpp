@@ -291,6 +291,15 @@ void init_slice(int ctr){
     slice_fx      = (fftw_real *)malloc(dim);
     slice_fy      = (fftw_real *)malloc(dim);
     slice_rho     = (fftw_real *)malloc(dim);
+    
+    // for stream surface trace
+    int dim_s = surface_line_n * sizeof(float);        //Allocate data structures
+    seeds_x = (float *)malloc(dim_s);
+    seeds_y = (float *)malloc(dim_s);
+    int traceDim = n_slice * sizeof(float)*surface_line_n;
+    trace_x = (float *)malloc(traceDim);
+    trace_y = (float *)malloc(traceDim);
+    trace_v = (float *)malloc(traceDim);
 }
 
 void init_surface(){
@@ -1918,12 +1927,12 @@ int main(int argc, char **argv)
     // Gradient panel
     obj_panel4 = new GLUI_Rollout(glui, "Gradient Panel", false);
     new GLUI_Checkbox(obj_panel4, "Gradient", &draw_gradient);
-    panel4_1 = new GLUI_Panel(obj_panel4, "Dataset", false);
+    panel4_1 = new GLUI_Panel(obj_panel4, "Dataset", true);
     radio_grad = new GLUI_RadioGroup(panel4_1, &gradient_col);
     new GLUI_RadioButton(radio_grad, "Density");
     new GLUI_RadioButton(radio_grad, "Velocity");
     
-    panel4_2 = new GLUI_Panel(obj_panel4, "ColorMaps", false);
+    panel4_2 = new GLUI_Panel(obj_panel4, "ColorMaps", true);
     grad_map = new GLUI_RadioGroup(panel4_2, &gradient_map);
     new GLUI_RadioButton(grad_map, "Black-White");
     new GLUI_RadioButton(grad_map, "Heatmap");
