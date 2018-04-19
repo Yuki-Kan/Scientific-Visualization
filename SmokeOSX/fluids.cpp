@@ -1700,9 +1700,9 @@ void keyboard(unsigned char key, int x, int y)
             if(scalr_data == RHO){
                 clamp_rho_max -= 0.5; if (clamp_rho_min >= clamp_rho_max) clamp_rho_max = clamp_rho_min + 0.5; break;
             }
-            else if (scalr_data== VELO){
+            else if (scalr_data== VELO || vect_data == VELO){
                 clamp_v_max -= 0.5; if (clamp_v_min >= clamp_v_max) clamp_v_max = clamp_v_min + 0.5; break;
-            }else if (scalr_data== FORCE){
+            }else if (scalr_data== FORCE || vect_data == FORCE){
                 clamp_f_max -= 0.5; if (clamp_f_min >= clamp_f_max) clamp_f_max = clamp_f_min + 0.5; break;
             }
         }
